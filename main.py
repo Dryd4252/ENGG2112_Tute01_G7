@@ -2,10 +2,9 @@ import pandas as pd
 import ml_models
 import numpy as np
 
-import ml_models.xgb as xgb
 import ml_models.mlp as mlp
+    ## Function to optimise mlp based on certain parameteres
 
-## Function to optimise mlp based on certain parameteres
 def normalise(value, mean, std):
     z = (value - mean) / std
     # Rescale z-scores to 0–1 using sigmoid-like transformation
@@ -39,9 +38,10 @@ def optimise_mlp(data,net_sizes,seed):
     
     size_df = pd.DataFrame(size_scores, columns= ["mse", "rmse", "mae","r2"], index = net_sizes)
     size_df["weighted_score"] = size_df.apply(weighted_score, axis=1,args=(size_df,))
+    size_df.to_csv("results/test.csv")
     print(size_df)
     print(models)
-    print(models[f"model_{(128, 64, 32)}"].create_graph())
+    models[f"model_{(128, 64, 32)}"].create_graph()
 
 
 
@@ -58,13 +58,7 @@ def main():
     # print(mlp_model.get_statistics())
     # mlp_model.create_graph()
 
-    # xgb_model = xgb.XgbModel(data, 100, 0.1, 5, seed=seed)
-    # xgb_model.process_data()
-    # xgb_model.train_model()
-    # xgb_model.make_prediction()
-    # xgb_model.classify_model_performance()
-    # print(xgb_model.get_statistics())
-    # xgb_model.create_graph()
+    
 
 if __name__ == "__main__":
     main()
