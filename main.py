@@ -5,6 +5,7 @@ import sys
 
 from ml_models.mlp import MlpModel as mlp
 from ml_models.rfr import RfrModel as rfr
+from ml_models.xgb import XgbModel as xgb
 
 def normalise(value, mean, std):
     z = (value - mean) / std
@@ -47,15 +48,16 @@ def optimise_mlp(data,net_sizes,seed):
 
 def main(save_files):
     seed = 6969
-    data = pd.read_csv("train.csv")
+    property_data = pd.read_csv("train.csv")
 
     # net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
-    # optimise_mlp(data,net_sizes,seed)
+    # optimise_mlp(property_data,net_sizes,seed)
 
-    mlp_model = mlp(data, 50, seed=seed)
-    rfr_model = rfr(data, seed=seed)
+    mlp_model = mlp(property_data, 50, seed=seed)
+    rfr_model = rfr(property_data, seed=seed)
+    xgb_model = xgb(property_data, 100, 0.1, 5, seed=seed)
 
-    ml_models = [mlp_model, rfr_model]
+    ml_models = [mlp_model, rfr_model, xgb_model]
     
     for model in ml_models:
         model.process_data(["critical_temp"])
@@ -68,7 +70,19 @@ def main(save_files):
         if save_files: # Savees stats if save_files is True
             model.save_statistics(model.name) 
 
+
+    symbol_data = pd.read_csv("unique_m.csv")
+
+    symbol_drop_columns = ["critical_temp", "material"]
+    symbol_data = symbol_data.drop(columns=symbol_drop_columns)
+
+    property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+
+
+
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True
     main(save_files)
+
+
     plt.show()
