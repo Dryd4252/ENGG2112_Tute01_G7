@@ -2,11 +2,9 @@ import pandas as pd
 import ml_models
 import numpy as np
 
-import ml_models.xgb as xgb
 import ml_models.mlp as mlp
 from ml_models.rfr import RfrModel as rfr
 
-## Function to optimise mlp based on certain parameteres
 def normalise(value, mean, std):
     z = (value - mean) / std
     # Rescale z-scores to 0–1 using sigmoid-like transformation
@@ -20,6 +18,7 @@ def weighted_score(row, df):
 
     return 0.25 * scaled_mse + 0.25 * scaled_rmse + 0.25 * scaled_mae + 0.25 * scaled_r2
 
+## Function to optimise mlp based on certain parameteres
 def optimise_mlp(data,net_sizes,seed):
     size_scores = []
     i = 0
@@ -40,9 +39,10 @@ def optimise_mlp(data,net_sizes,seed):
     
     size_df = pd.DataFrame(size_scores, columns= ["mse", "rmse", "mae","r2"], index = net_sizes)
     size_df["weighted_score"] = size_df.apply(weighted_score, axis=1,args=(size_df,))
+    size_df.to_csv("results/test.csv")
     print(size_df)
     print(models)
-    print(models[f"model_{(128, 64, 32)}"].create_graph())
+    models[f"model_{(128, 64, 32)}"].create_graph()
 
 
 
@@ -66,19 +66,10 @@ def main():
 
         if save_files: # Savees stats if save_files is True
             model.save_statistics(model.name) 
-
             
     net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
   
     # optimise_mlp(data,net_sizes,seed)
-
-    # xgb_model = xgb.XgbModel(data, 100, 0.1, 5, seed=seed)
-    # xgb_model.process_data()
-    # xgb_model.train_model()
-    # xgb_model.make_prediction()
-    # xgb_model.classify_model_performance()
-    # print(xgb_model.get_statistics())
-    # xgb_model.create_graph()
 
 if __name__ == "__main__":
     main()
