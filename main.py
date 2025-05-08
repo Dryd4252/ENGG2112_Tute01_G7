@@ -4,6 +4,7 @@ import numpy as np
 
 import ml_models.xgb as xgb
 import ml_models.mlp as mlp
+from ml_models.rfr import RfrModel as rfr
 
 ## Function to optimise mlp based on certain parameteres
 def normalise(value, mean, std):
@@ -46,17 +47,30 @@ def optimise_mlp(data,net_sizes,seed):
 
 
 def main():
-    seed = 6969
+    seed = 69420
     data = pd.read_csv("train.csv")
-    net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
-    
+    save_files = True
 
-    optimise_mlp(data,net_sizes,seed)
-    # mlp_model.train_model()
-    # mlp_model.make_prediction()
-    # mlp_model.classify_model_performance()
-    # print(mlp_model.get_statistics())
-    # mlp_model.create_graph()
+    mlp_model = mlp.MlpModel(data, 50, seed=seed)
+    rfr_model = rfr(data, seed=seed)
+
+    ml_models = [mlp_model, rfr_model]
+    
+    for model in ml_models:
+        model.process_data()
+        model.train_model()
+        model.make_prediction()
+        model.classify_model_performance()
+        print(model.get_statistics())
+        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
+
+        if save_files: # Savees stats if save_files is True
+            model.save_statistics(model.name) 
+
+            
+    net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
+  
+    # optimise_mlp(data,net_sizes,seed)
 
     # xgb_model = xgb.XgbModel(data, 100, 0.1, 5, seed=seed)
     # xgb_model.process_data()
