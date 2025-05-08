@@ -3,7 +3,7 @@ import ml_models
 import numpy as np
 
 import ml_models.mlp as mlp
-    ## Function to optimise mlp based on certain parameteres
+from ml_models.rfr import RfrModel as rfr
 
 def normalise(value, mean, std):
     z = (value - mean) / std
@@ -18,6 +18,7 @@ def weighted_score(row, df):
 
     return 0.25 * scaled_mse + 0.25 * scaled_rmse + 0.25 * scaled_mae + 0.25 * scaled_r2
 
+## Function to optimise mlp based on certain parameteres
 def optimise_mlp(data,net_sizes,seed):
     size_scores = []
     i = 0
@@ -46,19 +47,29 @@ def optimise_mlp(data,net_sizes,seed):
 
 
 def main():
-    seed = 6969
+    seed = 69420
     data = pd.read_csv("train.csv")
+    save_files = True
+
+    mlp_model = mlp.MlpModel(data, 50, seed=seed)
+    rfr_model = rfr(data, seed=seed)
+
+    ml_models = [mlp_model, rfr_model]
+    
+    for model in ml_models:
+        model.process_data()
+        model.train_model()
+        model.make_prediction()
+        model.classify_model_performance()
+        print(model.get_statistics())
+        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
+
+        if save_files: # Savees stats if save_files is True
+            model.save_statistics(model.name) 
+            
     net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
-    
-
-    optimise_mlp(data,net_sizes,seed)
-    # mlp_model.train_model()
-    # mlp_model.make_prediction()
-    # mlp_model.classify_model_performance()
-    # print(mlp_model.get_statistics())
-    # mlp_model.create_graph()
-
-    
+  
+    # optimise_mlp(data,net_sizes,seed)
 
 if __name__ == "__main__":
     main()
