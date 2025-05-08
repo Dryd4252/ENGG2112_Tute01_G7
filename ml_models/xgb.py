@@ -23,12 +23,9 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
         self.learning_rate = learning_rate
         self.max_depth = max_depth
 
-    def process_data(self, test_size=0.2, exclude_features: list[str] = []):
-        label = "critical_temp"
-        self.data = self.data.dropna()
-
-        X = self.data.drop(columns=[label, *exclude_features])
-        y = self.data[label]
+    def process_data(self,target, test_size=0.2, exclude_features: list[str] = []):
+        X = self.data.drop(columns=[*target, *exclude_features])
+        y = self.data[target]
 
         (self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(X, y, test_size=test_size, random_state=self.seed)
 

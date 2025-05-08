@@ -1,6 +1,7 @@
 import pandas as pd
 import ml_models
 import numpy as np
+import matplotlib.pyplot as plt
 
 import ml_models.xgb as xgb
 import ml_models.mlp as mlp
@@ -43,28 +44,45 @@ def optimise_mlp(data,net_sizes,seed):
     print(models)
     print(models[f"model_{(128, 64, 32)}"].create_graph())
 
-
-
 def main():
     seed = 6969
-    data = pd.read_csv("train.csv")
+    property_data = pd.read_csv("train.csv")
+
     net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
-    
+    # optimise_mlp(property_data,net_sizes,seed)
 
-    optimise_mlp(data,net_sizes,seed)
-    # mlp_model.train_model()
-    # mlp_model.make_prediction()
-    # mlp_model.classify_model_performance()
-    # print(mlp_model.get_statistics())
-    # mlp_model.create_graph()
+#    mlp_model = mlp.MlpModel(property_data, (10,), alpha = 0.0001, seed=seed)
+#    mlp_model.process_data()
+#    mlp_model.train_model()
+#    mlp_model.make_prediction()
+#    mlp_model.classify_model_performance()
+#    print(mlp_model.get_statistics())
+#    mlp_model.create_graph()
 
-    # xgb_model = xgb.XgbModel(data, 100, 0.1, 5, seed=seed)
-    # xgb_model.process_data()
-    # xgb_model.train_model()
-    # xgb_model.make_prediction()
-    # xgb_model.classify_model_performance()
-    # print(xgb_model.get_statistics())
-    # xgb_model.create_graph()
+    xgb_model = xgb.XgbModel(property_data, 100, 0.1, 5, seed=seed)
+    xgb_model.process_data(["critical_temp"])
+    xgb_model.train_model()
+    xgb_model.make_prediction()
+    xgb_model.classify_model_performance()
+    print(xgb_model.get_statistics())
+    xgb_model.create_graph()
+
+    symbol_data = pd.read_csv("unique_m.csv")
+
+    symbol_drop_columns = ["critical_temp", "material"]
+    symbol_data = symbol_data.drop(columns=symbol_drop_columns)
+
+    property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+
+    xgb_model = xgb.XgbModel(property_symbol_data, 100, 0.1, 5, seed=seed)
+    xgb_model.process_data(["critical_temp"])
+    xgb_model.train_model()
+    xgb_model.make_prediction()
+    xgb_model.classify_model_performance()
+    print(xgb_model.get_statistics())
+    xgb_model.create_graph()
+
 
 if __name__ == "__main__":
     main()
+    plt.show()

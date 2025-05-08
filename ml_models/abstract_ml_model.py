@@ -120,7 +120,6 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
         plt.title(f'{self.name}: Actual vs Predicted')
         plt.grid(True)
         plt.tight_layout()
-        plt.show()
 
         if save_fig:
             plt.savefig(f"mlp_results/graphs/{size} layers model.png")
