@@ -94,8 +94,12 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.MODEL_TRAINED)
     @transition_state(ModelState.PREDICTION_MADE)
-    def make_prediction(self) -> None:
+    def test_prediction(self) -> None:
         self.y_pred = self.model.predict(self.X_test)
+
+    @require_state(ModelState.MODEL_TRAINED)
+    def make_prediction(self, features: pd.DataFrame) -> pd.DataFrame:
+        return self.model.predict(features)
 
     @require_state(ModelState.MODEL_TRAINED)
     @transition_state(ModelState.CLASSIFIED_PERFORMANCE)

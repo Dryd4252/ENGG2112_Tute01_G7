@@ -23,9 +23,8 @@ class RfrModel(AbstractMlModel):
         super().__init__(data, self.__class__.__name__, seed=seed)
 
     # Process data definition
-    def process_data(self, split_size: float = 0.2, exclude_features: list[str] = []) -> None:
-        target_label = "critical_temp"
-        X = self.data.drop(columns=[target_label, *exclude_features])
+    def process_data(self, target_label: list[str], split_size: float = 0.2, exclude_features: list[str] = []) -> None:
+        X = self.data.drop(columns=[*target_label, *exclude_features])
         y = self.data[target_label]
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=split_size, random_state=self.seed)

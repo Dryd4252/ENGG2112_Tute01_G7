@@ -32,7 +32,7 @@ def optimise_mlp(data,net_sizes,seed):
         mlp_model = mlp(data, net_size,alpha = alpha, seed=seed)
         mlp_model.process_data()
         mlp_model.train_model()
-        mlp_model.make_prediction()
+        mlp_model.test_prediction()
         mlp_model.classify_model_performance()
         size_scores.append(mlp_model.get_statistics())
         models[f"model_{net_size}"] = mlp_model
@@ -58,9 +58,9 @@ def main(save_files):
     ml_models = [mlp_model, rfr_model]
     
     for model in ml_models:
-        model.process_data()
+        model.process_data(["critical_temp"])
         model.train_model()
-        model.make_prediction()
+        model.test_prediction()
         model.classify_model_performance()
         print(model.get_statistics())
 
