@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
@@ -33,6 +34,15 @@ def transition_state(next_state: ModelState):
             return method(self, *args, **kwargs)
         return wrapper
     return decorator
+
+def track_time(method):
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = method(*args, **kwargs)
+        end = time.time()
+        print(f"{method.__qualname__} execute time: {(end - start):.5f}s")
+        return result
+    return wrapper
 
 class AbstractMlModelMeta(ABCMeta):
 
@@ -123,5 +133,3 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
         if save_fig:
             plt.savefig(f"results/graphs/{self.name} model.png")
-        else:
-            plt.show()

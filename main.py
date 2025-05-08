@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import sys
 
-import ml_models.mlp as mlp
+from ml_models.mlp import MlpModel as mlp
 from ml_models.rfr import RfrModel as rfr
 
 def normalise(value, mean, std):
@@ -27,7 +29,7 @@ def optimise_mlp(data,net_sizes,seed):
     for net_size in net_sizes:
         i += 1
         print(f"running test #{i} for size parameter tuple {net_size}")
-        mlp_model = mlp.MlpModel(data, net_size,alpha = alpha, seed=seed)
+        mlp_model = mlp(data, net_size,alpha = alpha, seed=seed)
         mlp_model.process_data()
         mlp_model.train_model()
         mlp_model.make_prediction()
@@ -43,15 +45,15 @@ def optimise_mlp(data,net_sizes,seed):
     print(models)
     models[f"model_{(128, 64, 32)}"].create_graph()
 
-
-
-def main():
-    seed = 69420
+def main(save_files):
+    seed = 6969
     data = pd.read_csv("train.csv")
-    save_files = True
 
-    mlp_model = mlp.MlpModel(data, 50, seed=seed)
-    rfr_model = rfr(data, seed=seed, track_training_time=False)
+    # net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
+    # optimise_mlp(data,net_sizes,seed)
+
+    mlp_model = mlp(data, 50, seed=seed)
+    rfr_model = rfr(data, seed=seed)
 
     ml_models = [mlp_model, rfr_model]
     
@@ -61,14 +63,12 @@ def main():
         model.make_prediction()
         model.classify_model_performance()
         print(model.get_statistics())
-        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
 
+        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
         if save_files: # Savees stats if save_files is True
             model.save_statistics(model.name) 
-            
-    net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
-  
-    # optimise_mlp(data,net_sizes,seed)
 
 if __name__ == "__main__":
-    main()
+    save_files = len(sys.argv) > 1 and sys.argv[1] is True
+    main(save_files)
+    plt.show()

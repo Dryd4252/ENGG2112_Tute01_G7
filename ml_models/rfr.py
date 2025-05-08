@@ -4,7 +4,6 @@
 
 # Imports
 # =============================================================================
-import time
 import pandas as pd
 
 from sklearn.pipeline import Pipeline
@@ -13,16 +12,15 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import MinMaxScaler
 
-from .abstract_ml_model import AbstractMlModel
+from .abstract_ml_model import AbstractMlModel, track_time
 
 # Class Definition
 # =============================================================================
 class RfrModel(AbstractMlModel):
 
     # Constructor
-    def __init__(self, data: pd.DataFrame, seed=None, track_training_time: bool = True) -> None:
+    def __init__(self, data: pd.DataFrame, seed=None) -> None:
         super().__init__(data, self.__class__.__name__, seed=seed)
-        self.track_training_time = track_training_time
 
     # Process data definition
     def process_data(self, split_size: float = 0.2, exclude_features: list[str] = []) -> None:
@@ -33,10 +31,8 @@ class RfrModel(AbstractMlModel):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=split_size, random_state=self.seed)
 
     # tain model definition
+    @track_time
     def train_model(self) -> None:
-        if self.track_training_time:
-            time_start = time.time()
-        
         numerical_features = self.X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
         preprocessor = ColumnTransformer(
@@ -47,9 +43,7 @@ class RfrModel(AbstractMlModel):
 
         # Random Forest Regressor pipeline
         rfr_model = Pipeline(steps=[
-
             ('preprocessor', preprocessor),
-
             (
                 'rfr', RandomForestRegressor
                 (
@@ -65,6 +59,3 @@ class RfrModel(AbstractMlModel):
         ])
 
         self.model = rfr_model.fit(self.X_train, self.y_train.values.ravel())
-        if self.track_training_time:
-            self.training_time = time.time() - time_start
-            print(f"RFR training time: {self.training_time:.2f} seconds")
