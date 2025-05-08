@@ -42,7 +42,17 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
 
         mlp_model = Pipeline(steps=[
             ('preprocessor',mlp_preprocessor),
-            ('mlp', MLPRegressor(hidden_layer_sizes=self.hl_sizes,activation=self.activation,solver=self.solver,alpha=self.alpha,learning_rate_init=self.learning_rate_init,max_iter=self.max_iterations, random_state=self.seed,early_stopping=self.early_stopping,verbose=True))
+            ('mlp', MLPRegressor(
+                hidden_layer_sizes=self.hl_sizes,
+                activation=self.activation,
+                solver=self.solver,
+                alpha=self.alpha,
+                learning_rate_init=self.learning_rate_init,
+                max_iter=self.max_iterations, 
+                random_state=self.seed,
+                early_stopping=self.early_stopping,
+                verbose=False
+            ))
         ])
 
         self.model = mlp_model.fit(self.X_train, self.y_train.values.ravel())
