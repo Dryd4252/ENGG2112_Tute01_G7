@@ -107,7 +107,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
             "mae": [self.mae],
             "r2": [self.r2]
         })
-        results_df.to_csv(f"results/txt/{name}")
+        results_df.to_csv(f"results/txt/{name}.csv", index=False)
 
     @require_state(ModelState.MODEL_TRAINED)
     def create_graph(self, save_fig=False) -> None:
