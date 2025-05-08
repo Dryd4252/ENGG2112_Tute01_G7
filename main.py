@@ -1,5 +1,4 @@
 import pandas as pd
-import ml_models
 import numpy as np
 
 import ml_models.xgb as xgb
@@ -52,7 +51,7 @@ def main():
     save_files = True
 
     mlp_model = mlp.MlpModel(data, 50, seed=seed)
-    rfr_model = rfr(data, seed=seed)
+    rfr_model = rfr(data, seed=seed, track_training_time=False)
 
     ml_models = [mlp_model, rfr_model]
     

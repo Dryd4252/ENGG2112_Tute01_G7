@@ -4,7 +4,7 @@
 
 # Imports
 # =============================================================================
-import numpy as np
+import time
 import pandas as pd
 
 from sklearn.pipeline import Pipeline
@@ -20,8 +20,9 @@ from .abstract_ml_model import AbstractMlModel
 class RfrModel(AbstractMlModel):
 
     # Constructor
-    def __init__(self, data: pd.DataFrame, seed=None):
+    def __init__(self, data: pd.DataFrame, seed=None, track_training_time: bool = True) -> None:
         super().__init__(data, self.__class__.__name__, seed=seed)
+        self.track_training_time = track_training_time
 
     # Process data definition
     def process_data(self, split_size: float = 0.2, exclude_features: list[str] = []) -> None:
@@ -33,6 +34,9 @@ class RfrModel(AbstractMlModel):
 
     # tain model definition
     def train_model(self) -> None:
+        if self.track_training_time:
+            time_start = time.time()
+        
         numerical_features = self.X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
         preprocessor = ColumnTransformer(
@@ -49,9 +53,9 @@ class RfrModel(AbstractMlModel):
             (
                 'rfr', RandomForestRegressor
                 (
-                    n_estimators=100,
-                    max_depth=10,
-                    min_samples_split=2,
+                    n_estimators=141,
+                    max_depth=30,
+                    min_samples_split=3,
                     min_samples_leaf=1,
                     max_features='sqrt',
                     random_state=self.seed,
@@ -61,3 +65,6 @@ class RfrModel(AbstractMlModel):
         ])
 
         self.model = rfr_model.fit(self.X_train, self.y_train.values.ravel())
+        if self.track_training_time:
+            self.training_time = time.time() - time_start
+            print(f"RFR training time: {self.training_time:.2f} seconds")
