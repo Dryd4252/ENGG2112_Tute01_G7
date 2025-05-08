@@ -7,7 +7,7 @@ def main():
     seed = 6969
     data = pd.read_csv("train.csv")
 
-    mlp_model = mlp.MlpModel(data, 50, seed=seed)
+    mlp_model = mlp.MlpModel(data, (128,64,32), seed=seed)
     mlp_model.process_data()
     mlp_model.train_model()
     mlp_model.make_prediction()
@@ -15,6 +15,7 @@ def main():
     print(mlp_model.get_statistics())
     mlp_model.create_graph()
 
+    
 
 if __name__ == "__main__":
     main()
