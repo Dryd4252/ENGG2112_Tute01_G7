@@ -59,7 +59,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
         self.seed = seed
 
         self.data: pd.DataFrame = data
-        self.name = name 
+        self.name = name
 
         # self.X_train: pd.DataFrame = None
         # self.y_train: pd.DataFrame = None
@@ -120,8 +120,8 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
         plt.title(f'{self.name}: Actual vs Predicted')
         plt.grid(True)
         plt.tight_layout()
-        plt.show()
 
         if save_fig:
-            plt.savefig(f"mlp_results/graphs/{size} layers model.png")
-
+            plt.savefig(f"results/graphs/{self.name} model.png")
+        else:
+            plt.show()
