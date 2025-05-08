@@ -1,9 +1,11 @@
 import pandas as pd
+import time
 from scipy.stats import randint
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import mean_squared_error
 
+start_time = time.time() # Start timer
 # 1. Load data
 data = pd.read_csv("train.csv")
 y = data["critical_temp"]
@@ -17,7 +19,7 @@ rf = RandomForestRegressor(random_state=69420)
 
 param_grid = {
     'n_estimators': randint(100, 300),
-    'max_depth': [None] + randint(10, 20),
+    'max_depth': [None] +  list(range(10, 51, 10)),
     'min_samples_split': randint(2, 5),
     'min_samples_leaf': randint(1, 2),
     'max_features': ['sqrt', 'log2']
@@ -26,8 +28,8 @@ param_grid = {
 # 4. Set up GridSearchCV
 random_search = RandomizedSearchCV(
     estimator=rf,
-    param_grid=param_grid,
-    n_iter=20,  # only try 20 random combinations
+    param_distributions=param_grid,
+    n_iter=5,  # only try 20 random combinations
     cv=5,
     scoring='neg_mean_squared_error',
     n_jobs=-1,
@@ -45,3 +47,4 @@ mse = mean_squared_error(y_test, y_pred)
 
 print("Best Parameters:", random_search.best_params_)
 print("Test MSE:", mse)
+print("Execution Time:", time.time() - start_time) # Print execution time
