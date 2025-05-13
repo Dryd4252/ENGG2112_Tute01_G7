@@ -1,5 +1,6 @@
 import pandas as pd
 
+from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -53,6 +54,11 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 verbose=False
             ))
         ])
+        
+        if len(self.y_train.columns) == 1:
+            self.model = mlp_model.fit(self.X_train, self.y_train.values.ravel())
+        else:
+            self.model = mlp_model.fit(self.X_train, self.y_train)
 
-        self.model = mlp_model.fit(self.X_train, self.y_train.values.ravel())
-
+    def initalise_model(self) -> BaseEstimator:
+        return MLPRegressor(random_state=self.seed)

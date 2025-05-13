@@ -3,7 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import RandomizedSearchCV
 
 from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
@@ -92,6 +94,35 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     def train_model(self) -> None:
         pass
 
+    @abstractmethod
+    def initalise_model(self) -> BaseEstimator:
+        pass
+
+    @require_state(ModelState.DATA_PROCESSED)
+    @transition_state(ModelState.MODEL_TRAINED)
+    def optomise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
+
+        # Set up GridSearchCV
+        random_search = RandomizedSearchCV(
+            estimator=self.initalise_model(),
+            param_distributions=param_grid,
+            n_iter=n_iter,  
+            cv=cv,
+            scoring=scoring,
+            n_jobs=-1,
+            random_state=self.seed,
+            verbose=verbose
+        )
+
+        # Run grid search
+        if len(self.y_train.columns) == 1:
+            random_search.fit(self.X_train, self.y_train.values.ravel())
+        else:
+            random_search.fit(self.X_train, self.y_train)
+
+        # Get best model
+        self.model = random_search.best_estimator_
+
     @require_state(ModelState.MODEL_TRAINED)
     @transition_state(ModelState.PREDICTION_MADE)
     def test_prediction(self) -> None:
@@ -137,3 +168,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
         if save_fig:
             plt.savefig(f"results/graphs/{self.name} model.png")
+
+    @require_state(ModelState.MODEL_TRAINED)
+    def get_params(self):
+        return self.model.get_params()

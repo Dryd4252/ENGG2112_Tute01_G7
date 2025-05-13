@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from scipy.stats import randint
 
 from ml_models.mlp import MlpModel as mlp
 from ml_models.rfr import RfrModel as rfr
@@ -46,20 +47,38 @@ def optimise_mlp(data,net_sizes,seed):
     print(models)
     models[f"model_{(128, 64, 32)}"].create_graph()
 
+def rfr_test_optomiser():
+    param_grid = {
+        'n_estimators': randint(100, 300),
+        'max_depth': [None] +  list(range(10, 51, 10)),
+        'min_samples_split': randint(2, 5),
+        'min_samples_leaf': randint(1, 2),
+        'max_features': ['sqrt', 'log2']
+    }
+
+    rfr_model_t = rfr(property_data, seed=seed)
+    rfr_model_t.process_data(["critical_temp"])
+    rfr_model_t.optomise_model(param_grid)
+    rfr_model_t.test_prediction()
+    rfr_model_t.classify_model_performance()
+
+    print(rfr_model_t.get_statistics())
+    print(rfr_model_t.get_params())
+
 def main(save_files):
     seed = 6969
     property_data = pd.read_csv("train.csv")
 
     # net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
     # optimise_mlp(property_data,net_sizes,seed)
-
-    mlp_model = mlp(property_data, 50, seed=seed)
-    rfr_model = rfr(property_data, seed=seed)
-    xgb_model = xgb(property_data, 100, 0.1, 5, seed=seed)
-
-    ml_models = [mlp_model, rfr_model, xgb_model]
     
-    for model in ml_models:
+    mlp_model_1 = mlp(property_data, 50, seed=seed)
+    rfr_model_1 = rfr(property_data, seed=seed)
+    xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
+
+    ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
+    
+    for model in ml_models_1:
         model.process_data(["critical_temp"])
         model.train_model()
         model.test_prediction()
@@ -83,6 +102,5 @@ def main(save_files):
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True
     main(save_files)
-
 
     plt.show()
