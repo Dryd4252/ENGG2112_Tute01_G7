@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 
 from xgboost import XGBRegressor
+
+from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -46,4 +48,10 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
         ]
 
         # train and test the model
-        self.model = Pipeline(steps).fit(self.X_train, self.y_train.values.ravel())
+        if len(self.y_train.columns) == 1:
+            self.model = Pipeline(steps).fit(self.X_train, self.y_train.values.ravel())
+        else:
+            self.model = Pipeline(steps).fit(self.X_train, self.y_train)
+
+    def initalise_model(self) -> BaseEstimator:
+        return XGBRegressor(random_state=self.seed)

@@ -6,6 +6,7 @@
 # =============================================================================
 import pandas as pd
 
+from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -63,4 +64,10 @@ class RfrModel(AbstractMlModel):
             )
         ])
 
-        self.model = rfr_model.fit(self.X_train, self.y_train.values.ravel())
+        if len(self.y_train.columns) == 1:
+            self.model = rfr_model.fit(self.X_train, self.y_train.values.ravel())
+        else:
+            self.model = rfr_model.fit(self.X_train, self.y_train)
+
+    def initalise_model(self) -> BaseEstimator:
+        return RandomForestRegressor(random_state=self.seed)
