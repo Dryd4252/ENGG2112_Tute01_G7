@@ -103,7 +103,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     def optomise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
 
         # Set up GridSearchCV
-        random_search = RandomizedSearchCV(
+        self.random_search = RandomizedSearchCV(
             estimator=self.initalise_model(),
             param_distributions=param_grid,
             n_iter=n_iter,  
@@ -116,12 +116,12 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
         # Run grid search
         if len(self.y_train.columns) == 1:
-            random_search.fit(self.X_train, self.y_train.values.ravel())
+            self.random_search.fit(self.X_train, self.y_train.values.ravel())
         else:
-            random_search.fit(self.X_train, self.y_train)
+            self.random_search.fit(self.X_train, self.y_train)
 
         # Get best model
-        self.model = random_search.best_estimator_
+        self.model = self.random_search.best_estimator_
 
     @require_state(ModelState.MODEL_TRAINED)
     @transition_state(ModelState.PREDICTION_MADE)
@@ -172,3 +172,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     @require_state(ModelState.MODEL_TRAINED)
     def get_params(self):
         return self.model.get_params()
+    
+    @require_state(ModelState.MODEL_TRAINED)
+    def get_cv_results(self):
+        return self.random_search.cv_results_
