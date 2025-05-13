@@ -47,7 +47,7 @@ def optimise_mlp(data,net_sizes,seed):
     print(models)
     models[f"model_{(128, 64, 32)}"].create_graph()
 
-def rfr_test_optomiser():
+def rfr_test_optomiser(property_data: pd.DataFrame, seed: int):
     param_grid = {
         'n_estimators': randint(100, 300),
         'max_depth': [None] +  list(range(10, 51, 10)),
@@ -68,6 +68,10 @@ def rfr_test_optomiser():
 def main(save_files):
     seed = 6969
     property_data = pd.read_csv("train.csv")
+    
+    rfr_test_optomiser(property_data, seed)
+
+    return
 
     # net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
     # optimise_mlp(property_data,net_sizes,seed)
