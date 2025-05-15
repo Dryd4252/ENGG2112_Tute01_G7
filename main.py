@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-from scipy.stats import randint
+from scipy.stats import randint, uniform
 
 from ml_models.mlp import MlpModel as mlp
 from ml_models.rfr import RfrModel as rfr
@@ -65,11 +65,69 @@ def rfr_test_optomiser(property_data: pd.DataFrame, seed: int):
     print(rfr_model_t.get_statistics())
     print(rfr_model_t.get_params())
 
+def xgb_optimiser(property_data: pd.DataFrame, seed: int):
+    param_grid = {
+        'n_estimators': randint(100, 500),     # 100 - 1000
+        'learning_rate': uniform(0.01, 0.07),    #0.01 - 0.1
+        'max_depth': randint(4, 7),           #3 - 10
+        'subsample': uniform(0.5, 0.5),          #0.5 - 1
+        'colsample_bytree': uniform(0.5, 0.5),   #0.5 - 1
+        'lambda': uniform(1, 2),               #0 - > 1
+        'alpha': uniform(1, 2),                #0 - > 1
+        'booster': ['gbtree']
+    }
+
+    xgb_model_t = xgb(property_data, seed=seed)
+    xgb_model_t.process_data(["critical_temp"])
+    xgb_model_t.optimise_model(param_grid)
+    xgb_model_t.test_prediction()
+    xgb_model_t.classify_model_performance()
+
+    results = xgb_model_t.get_cv_results()
+
+    # Train performance
+    mse_train, rmse_train, mae_train, r2_train = xgb_model_t.evaluate_train_performance()
+
+    # Extract cross-validation scores
+    mean_val_scores = np.mean(results['mean_test_score'])
+    mean_train_scores = results.get('mean_train_score')
+    if mean_train_scores is not None:
+        mean_train_scores = np.mean(mean_train_scores)
+
+    # Test performance
+    xgb_model_t.classify_model_performance()
+    mse_test, rmse_test, mae_test, r2_test = xgb_model_t.get_statistics()
+
+    print("\n===== Cross-validation scores =====")
+    print(f"Mean test scores: {mean_val_scores}")
+    if mean_train_scores is not None:
+        print(f"Mean train scores: {mean_train_scores}")
+
+    print("\n===== Final Train Set Statistics =====")
+    print(f"MSE:  {mse_train:.4f}")
+    print(f"RMSE: {rmse_train:.4f}")
+    print(f"MAE:  {mae_train:.4f}")
+    print(f"R²:   {r2_train:.4f}")
+
+    print("\n===== Final Test Set Statistics =====")
+    print(f"MSE:  {mse_test:.4f}")
+    print(f"RMSE: {rmse_test:.4f}")
+    print(f"MAE:  {mae_test:.4f}")
+    print(f"R²:   {r2_test:.4f}")
+
+    print("\n===== Best Parameters =====")
+    print(xgb_model_t.get_params())
+    return xgb_model_t
+
 def main(save_files):
-    seed = 6969
+    seed = None
     property_data = pd.read_csv("train.csv")
     
-    rfr_test_optomiser(property_data, seed)
+    xgb_model_t = xgb_optimiser(property_data, seed)
+    save_files = True
+
+    if save_files: # Savees stats if save_files is True
+        xgb_model_t.save_statistics(xgb_model_t.name) 
 
     return
 

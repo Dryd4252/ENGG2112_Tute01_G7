@@ -2,10 +2,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import os
 
 from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import KFold, cross_val_score
 
 from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
@@ -100,7 +102,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.DATA_PROCESSED)
     @transition_state(ModelState.MODEL_TRAINED)
-    def optomise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
+    def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
 
         # Set up GridSearchCV
         self.random_search = RandomizedSearchCV(
@@ -111,7 +113,8 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
             scoring=scoring,
             n_jobs=-1,
             random_state=self.seed,
-            verbose=verbose
+            verbose=verbose,
+            return_train_score=True
         )
 
         # Run grid search
@@ -139,20 +142,42 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
         self.rmse = np.sqrt(self.mse)
         self.mae = mean_absolute_error(self.y_test, self.y_pred)
         self.r2 = r2_score(self.y_test, self.y_pred)
+
+        self.mse_train, self.rmse_train, self.mae_train, self.r2_train = self.evaluate_train_performance()
     
+    @require_state(ModelState.MODEL_TRAINED)
+    def evaluate_train_performance(self):
+        y_train_pred = self.model.predict(self.X_train)
+        mse_train = mean_squared_error(self.y_train, y_train_pred)
+        rmse_train = np.sqrt(mse_train)
+        mae_train = mean_absolute_error(self.y_train, y_train_pred)
+        r2_train = r2_score(self.y_train, y_train_pred)
+        return mse_train, rmse_train, mae_train, r2_train
+
     @require_state(ModelState.CLASSIFIED_PERFORMANCE)
     def get_statistics(self) -> None:
         return self.mse, self.rmse, self.mae, self.r2
 
     @require_state(ModelState.CLASSIFIED_PERFORMANCE)
     def save_statistics(self, name: str) -> None:
+        os.makedirs("results/txt", exist_ok=True)
+
         results_df = pd.DataFrame({
             "mse": [self.mse],
             "rmse": [self.rmse],
             "mae": [self.mae],
-            "r2": [self.r2]
+            "r2": [self.r2],
+            "train_mse": [self.mse_train],
+            "train_rmse": [self.rmse_train],
+            "train_mae": [self.mae_train],
+            "train_r2": [self.r2_train],
         })
-        results_df.to_csv(f"results/txt/{name}.csv", index=False)
+
+        results_df.to_csv(f"results/txt/{name}.csv", mode = 'a', header=not os.path.exists(f"results/txt/{name}.csv"), index=False)
+
+        params = self.model.get_params()
+        params_df = pd.DataFrame([params])
+        params_df.to_csv(f"results/txt/{name}_params.csv", mode='a', header=not os.path.exists(f"results/txt/{name}_params.csv"), index=False)
 
     @require_state(ModelState.MODEL_TRAINED)
     def create_graph(self, save_fig=False) -> None:

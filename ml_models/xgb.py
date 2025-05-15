@@ -15,9 +15,9 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
     def __init__(
             self, 
             data: pd.DataFrame,
-            n_estimators: int, 
-            learning_rate: float,
-            max_depth: int,
+            n_estimators: int = None, 
+            learning_rate: float = None,
+            max_depth: int = None,
             seed=None
         ):
         super().__init__(data, self.__class__.__name__, seed=seed)
