@@ -1,5 +1,6 @@
 import pandas as pd
 
+from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -22,10 +23,9 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         self.learning_rate_init = learning_rate_init
         self.early_stopping = early_stopping
 
-    def process_data(self, exclude_features: list[str] = []) -> None:
-        label = "critical_temp"
-        X = self.data.drop(columns=[label, *exclude_features])
-        y = self.data[label]
+    def process_data(self, target_label: list[str], split_size: float = 0.2,  exclude_features: list[str] = []) -> None:
+        X = self.data.drop(columns=[*target_label, *exclude_features])
+        y = self.data[target_label]
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
 
@@ -54,6 +54,11 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 verbose=False
             ))
         ])
+        
+        if len(self.y_train.columns) == 1:
+            self.model = mlp_model.fit(self.X_train, self.y_train.values.ravel())
+        else:
+            self.model = mlp_model.fit(self.X_train, self.y_train)
 
-        self.model = mlp_model.fit(self.X_train, self.y_train.values.ravel())
-
+    def initalise_model(self) -> BaseEstimator:
+        return MLPRegressor(random_state=self.seed)
