@@ -151,15 +151,30 @@ def main(save_files):
         if save_files: # Savees stats if save_files is True
             model.save_statistics(model.name) 
 
+    xgb_model = xgb.XgbModel(property_data, 100, 0.1, 5, seed=seed)
+    xgb_model.process_data(["critical_temp"])
+    xgb_model.train_model()
+    xgb_model.make_prediction()
+    xgb_model.classify_model_performance()
+    print(xgb_model.get_statistics())
+    xgb_model.create_graph()
+    ### Sub Problem B
 
     symbol_data = pd.read_csv("unique_m.csv")
 
     symbol_drop_columns = ["critical_temp", "material"]
     symbol_data = symbol_data.drop(columns=symbol_drop_columns)
 
+    subproblem_b_targets = symbol_data.copy()
+
     property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+    rfr_model_2_params = [sub_problem_B_target]
+    rfr_model_2 = rfr(property_symbol_data, seed=seed)
 
-
+    rfr_model_2.process_data(["critical_temp"])
+    rfr_model_2.train_model()
+    rfr_model_2.test_prediction()
+    rfr_model_2.classify_model_performance()
 
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True

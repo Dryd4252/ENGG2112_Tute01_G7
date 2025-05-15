@@ -104,7 +104,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     @transition_state(ModelState.MODEL_TRAINED)
     def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
 
-        # Set up GridSearchCV
+        # Set up RandomSearchCV
         self.random_search = RandomizedSearchCV(
             estimator=self.initalise_model(),
             param_distributions=param_grid,
