@@ -48,6 +48,7 @@ def main():
     seed = 6969
     property_data = pd.read_csv("train.csv")
 
+<<<<<<< Updated upstream
     net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
     # optimise_mlp(property_data,net_sizes,seed)
 
@@ -66,14 +67,37 @@ def main():
     xgb_model.classify_model_performance()
     print(xgb_model.get_statistics())
     xgb_model.create_graph()
+=======
+    mlp_model_1 = mlp(property_data, 50, seed=seed)
+    rfr_model_1 = rfr(property_data, seed=seed)
+    xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
+
+    ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
+    
+    for model in ml_models_1:
+        model.process_data(["critical_temp"])
+        model.train_model()
+        model.test_prediction()
+        model.classify_model_performance()
+        print(model.get_statistics())
+
+        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
+        if save_files: # Savees stats if save_files is True
+            model.save_statistics(model.name) 
+
+    ### Sub Problem B
+>>>>>>> Stashed changes
 
     symbol_data = pd.read_csv("unique_m.csv")
 
     symbol_drop_columns = ["critical_temp", "material"]
     symbol_data = symbol_data.drop(columns=symbol_drop_columns)
 
+    subproblem_b_targets = symbol_data.copy()
+
     property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
 
+<<<<<<< Updated upstream
     xgb_model = xgb.XgbModel(property_symbol_data, 100, 0.1, 5, seed=seed)
     xgb_model.process_data(["critical_temp"])
     xgb_model.train_model()
@@ -81,6 +105,16 @@ def main():
     xgb_model.classify_model_performance()
     print(xgb_model.get_statistics())
     xgb_model.create_graph()
+=======
+    rfr_model_2_params = [sub_problem_B_target]
+    rfr_model_2 = rfr(property_symbol_data, seed=seed)
+
+    model.process_data(["critical_temp"])
+    model.train_model()
+    model.test_prediction()
+    model.classify_model_performance()
+
+>>>>>>> Stashed changes
 
 
 if __name__ == "__main__":

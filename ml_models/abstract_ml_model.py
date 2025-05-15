@@ -82,6 +82,39 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     def train_model(self) -> None:
         pass
 
+<<<<<<< Updated upstream
+=======
+    @abstractmethod
+    def initalise_model(self) -> BaseEstimator:
+        pass
+
+    @require_state(ModelState.DATA_PROCESSED)
+    @transition_state(ModelState.MODEL_TRAINED)
+    def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
+
+        # Set up RandomSearchCV
+        self.random_search = RandomizedSearchCV(
+            estimator=self.initalise_model(),
+            param_distributions=param_grid,
+            n_iter=n_iter,  
+            cv=cv,
+            scoring=scoring,
+            n_jobs=-1,
+            random_state=self.seed,
+            verbose=verbose,
+            return_train_score=True
+        )
+
+        # Run grid search
+        if len(self.y_train.columns) == 1:
+            self.random_search.fit(self.X_train, self.y_train.values.ravel())
+        else:
+            self.random_search.fit(self.X_train, self.y_train)
+
+        # Get best model
+        self.model = self.random_search.best_estimator_
+
+>>>>>>> Stashed changes
     @require_state(ModelState.MODEL_TRAINED)
     @transition_state(ModelState.PREDICTION_MADE)
     def make_prediction(self) -> None:
