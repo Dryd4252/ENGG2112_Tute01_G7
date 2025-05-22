@@ -14,7 +14,7 @@ from ml_models.xgb import plot_property_importance, plot_element_importance
 from ml_models.abstract_ml_model import plot_top_properties_boxplots
 
 
-def rfr_test_optomiser(property_data: pd.DataFrame, seed: int):
+def rfr_test_optomiser(property_data: pd.DataFrame, target_labels: list[str], seed: int):
     param_grid = {
         'n_estimators': randint(100, 300),
         'max_depth': [None] +  list(range(10, 51, 10)),
@@ -24,7 +24,7 @@ def rfr_test_optomiser(property_data: pd.DataFrame, seed: int):
     }
 
     rfr_model_t = rfr(property_data, seed=seed)
-    rfr_model_t.process_data(["critical_temp"])
+    rfr_model_t.process_data(target_labels)
     rfr_model_t.optimise_model(param_grid)
     rfr_model_t.test_prediction()
     rfr_model_t.classify_model_performance()
@@ -33,17 +33,6 @@ def rfr_test_optomiser(property_data: pd.DataFrame, seed: int):
     print(rfr_model_t.get_params())
 
 def xgb_optimiser(property_data: pd.DataFrame, seed: int):
-    param_grid_test = {
-        'n_estimators': randint(100, 500),     # 100 - 1000
-        'learning_rate': uniform(0.01, 0.07),    #0.01 - 0.1
-        'max_depth': randint(4, 7),           #3 - 10
-        'subsample': uniform(0.5, 0.5),          #0.5 - 1
-        'colsample_bytree': uniform(0.5, 0.5),   #0.5 - 1
-        'lambda': uniform(1, 2),               #0 - > 1
-        'alpha': uniform(1, 2),                #0 - > 1
-        'booster': ['gbtree']
-    }
-
     param_grid = {
         'n_estimators': [323],     # 100 - 1000
         'learning_rate': [0.044994882],    #0.01 - 0.1
@@ -107,10 +96,10 @@ def main(save_files):
 
     # Sub-Problem A
 
-    print("Calling xgb_optimiser() for the first time to train model")
-    xgb_model_t = xgb_optimiser(property_data, seed)
+    # print("Calling xgb_optimiser() for the first time to train model")
+    # xgb_model_t = xgb_optimiser(property_data, seed)
     # plot_property_importance(xgb_model_t, property_data
-    plot_top_properties_boxplots(xgb_model_t, property_data)
+    # plot_top_properties_boxplots(xgb_model_t, property_data)
 
     # for i in range(2):
     #     xgb_model_t = xgb_optimiser(property_data, seed)
@@ -120,22 +109,22 @@ def main(save_files):
 
     # rfr_test_optomiser(property_data, seed)
 
-    mlp_model_1 = mlp(property_data, 50, seed=seed)
-    rfr_model_1 = rfr(property_data, seed=seed)
-    xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
+    # mlp_model_1 = mlp(property_data, 50, seed=seed)
+    # rfr_model_1 = rfr(property_data, seed=seed)
+    # xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
 
-    ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
+    # ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
 
-    for model in ml_models_1:
-        model.process_data(["critical_temp"])
-        model.train_model()
-        model.test_prediction()
-        model.classify_model_performance()
-        print(model.get_statistics())
+    # for model in ml_models_1:
+    #     model.process_data(["critical_temp"])
+    #     model.train_model()
+    #     model.test_prediction()
+    #     model.classify_model_performance()
+    #     print(model.get_statistics())
+    #     model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
 
-        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
-        if save_files: # Savees stats if save_files is True
-            model.save_statistics(model.name) 
+    #     if save_files: # Savees stats if save_files is True
+    #         model.save_statistics(model.name) 
 
     ### Sub Problem B
 
@@ -144,7 +133,7 @@ def main(save_files):
     symbol_drop_columns = ["critical_temp", "material"]
     symbol_data = symbol_data.drop(columns=symbol_drop_columns)
 
-    subproblem_b_targets = symbol_data.copy()
+    subproblem_b_targets = symbol_data.columns
 
     property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
 
@@ -162,8 +151,7 @@ def main(save_files):
         model.test_prediction()
         model.classify_model_performance()
         print(model.get_statistics())
-
-        model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
+        print(model.y_test)
         if save_files: # Savees stats if save_files is True
             model.save_statistics(model.name) 
 

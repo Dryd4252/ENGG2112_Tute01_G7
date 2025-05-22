@@ -37,7 +37,6 @@ class RfrModel(AbstractMlModel):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=split_size, random_state=self.seed)
 
     # tain model definition
-    @track_time
     def train_model(self) -> None:
         numerical_features = self.X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
