@@ -75,19 +75,6 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
         self.data: pd.DataFrame = data
         self.name = name
 
-        # self.X_train: pd.DataFrame = None
-        # self.y_train: pd.DataFrame = None
-        # self.X_test: pd.DataFrame = None
-        # self.y_test: pd.DataFrame = None
-        # self.y_pred: pd.DataFrame = None
-
-        # self.model = None
-
-        # self.mse: float = None
-        # self.rmse: float = None
-        # self.mae: float = None
-        # self.r2: float = None
-
     @abstractmethod
     def process_data(self) -> None:
         pass
@@ -117,7 +104,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
             return_train_score=True
         )
 
-        # Run grid search
+        # Run ranndom search
         if len(self.y_train.columns) == 1:
             self.random_search.fit(self.X_train, self.y_train.values.ravel())
         else:

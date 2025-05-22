@@ -25,7 +25,7 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
         self.learning_rate = learning_rate
         self.max_depth = max_depth
 
-    def process_data(self,target_label, test_size=0.2, exclude_features: list[str] = []):
+    def process_data(self, target_label, test_size=0.2, exclude_features: list[str] = []):
         X = self.data.drop(columns=[*target_label, *exclude_features])
         y = self.data[target_label]
 
