@@ -181,6 +181,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.MODEL_TRAINED)
     def create_graph(self, save_fig=False) -> None:
+        os.makedirs("results/graphs", exist_ok=True)
         # Scatter plot of actual vs predicted
         plt.figure(figsize=(8, 6))
         plt.scatter(self.y_test, self.y_pred, alpha=0.5, color='teal')
@@ -201,3 +202,34 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     @require_state(ModelState.MODEL_TRAINED)
     def get_cv_results(self):
         return self.random_search.cv_results_
+
+
+def plot_top_properties_boxplots(model, data, target_col="critical_temp", top_n=50, top_features=10):
+    # use model to find predictions and add to dataframe
+    X_test = model.X_test.copy()
+    preds = model.make_prediction(X_test)
+    X_test["predicted_Tc"] = preds
+    
+    # get the top n predicted temperatures
+    top_data = X_test.nlargest(top_n, "predicted_Tc")
+    
+    # get all features
+    features = [col for col in data.columns if col != target_col]
+    
+    # rank features using the mean values in top_data (dataframe with the top predicted Tc)
+    top_features_list = top_data[features].mean().sort_values(ascending=False).head(top_features).index.tolist()
+    
+    # plot
+    plt.figure(figsize=(15, 8))
+    top_data.boxplot(column=top_features_list)
+    plt.title(f"Distribution of Top {top_features} Properties in Top {top_n} Predicted Tc Superconductors")
+    plt.xticks(rotation=45)
+    medians = top_data[top_features_list].median()
+    positions = range(1, len(top_features_list) + 1)
+    for pos, feature in zip(positions, top_features_list):
+        median_val = medians[feature]
+        plt.text(pos, median_val, f'{median_val:.2f}', horizontalalignment='center',
+                 verticalalignment='bottom', fontsize=9, color='blue')
+
+    plt.tight_layout()
+    plt.show()

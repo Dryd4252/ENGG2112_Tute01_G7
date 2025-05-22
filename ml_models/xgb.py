@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from xgboost import XGBRegressor
 
@@ -10,6 +11,42 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, confusion_matrix,roc_auc_score
 
 from . import abstract_ml_model
+from .abstract_ml_model import require_state, ModelState
+
+def plot_property_importance(model, property_data):
+    feature_importance = model.get_feature_importances()
+    property_cols = property_data.drop(columns=["critical_temp"]).columns
+    importance_series = pd.Series(feature_importance[:len(property_cols)], index=property_cols)
+    sorted_importance = importance_series.sort_values(ascending=False)[:10]
+
+    plt.figure(figsize=(10, 6))
+    sorted_importance[::-1].plot(kind="barh", color="skyblue")
+    plt.title("Top 10 Most Important Properties in Predicting Tc")
+    plt.xlabel("XGBoost Gain Importance")
+    plt.tight_layout()
+
+def plot_element_importance(model, symbol_data):
+    feature_importance = model.get_feature_importances()
+    element_cols = symbol_data.columns
+    offset = -len(element_cols)  # features are appended to property_data
+
+    importance_series = pd.Series(feature_importance[offset:], index=element_cols)
+    sorted_importance = importance_series.sort_values(ascending=False)[:10]
+
+    plt.figure(figsize=(10, 6))
+    sorted_importance[::-1].plot(kind="barh", color="lightcoral")
+    plt.title("Top 10 Most Important Elements in Predicting Tc")
+    plt.xlabel("XGBoost Gain Importance")
+    plt.tight_layout()
+
+def get_top_important_features(model, top_n=10):
+    importance = model.model.feature_importances_
+    feature_names = model.feature_names
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': importance
+    }).sort_values(by='importance', ascending=False)
+    return importance_df.head(top_n)['feature'].tolist()
 
 class XgbModel(abstract_ml_model.AbstractMlModel):
     def __init__(
@@ -55,3 +92,13 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
 
     def initalise_model(self) -> BaseEstimator:
         return XGBRegressor(random_state=self.seed)
+    
+    @require_state(ModelState.MODEL_TRAINED)
+    def get_feature_importances(self) -> np.ndarray:
+        if hasattr(self.model, "named_steps"):
+            xgb_model_only = self.model.named_steps["model"]
+        else:
+            xgb_model_only = self.model
+
+        return xgb_model_only.feature_importances_
+
