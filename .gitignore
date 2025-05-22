@@ -185,3 +185,6 @@ cython_debug/
 
 results/graphs/*
 results/txt/*
+
+.DS_Store                                                                                                                                                                                           
+results/.DS_Store
