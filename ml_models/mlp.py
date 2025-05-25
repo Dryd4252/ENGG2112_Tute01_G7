@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
@@ -10,13 +11,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
+import matplotlib.pyplot as plt
+
 import abstract_ml_model
 
 class MlpModel(abstract_ml_model.AbstractMlModel):
     # im changing hl_sizes to a tuple to more easily change the variation of hidden layers, inputs will be lik (100,) or (128,64,32)
     def __init__(self, 
                  data: pd.DataFrame, 
-                 hl_sizes = (10,), 
+                 hidden_layer_sizes = (10,), 
                  activation = "relu",
                  solver='adam', 
                  alpha=0.0001,
@@ -33,9 +36,11 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                  beta_2 = 0.999,
                  epsilon = 1e-8,
                  n_iter_no_change = 10,
-                 seed=None):
+                 seed=None,
+                 verbose = 1
+                 ):
         super().__init__(data, self.__class__.__name__, seed=seed)
-        self.hl_sizes: tuple = hl_sizes 
+        self.hidden_layer_sizes: tuple = hidden_layer_sizes 
         self.activation = activation
         self.solver = solver
         self.alpha = alpha 
@@ -52,7 +57,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         self.epsilon = epsilon
         self.n_iter_no_change = n_iter_no_change
         self.early_stopping = early_stopping
-
+        self.verbose = verbose
     def process_data(self, target_label: list[str], split_size: float = 0.2,  exclude_features: list[str] = []) -> None:
         X = self.data.drop(columns=[*target_label, *exclude_features])
         y = self.data[target_label]
@@ -73,7 +78,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         mlp_model = Pipeline(steps=[
             ('preprocessor',mlp_preprocessor),
             ('mlp', MLPRegressor(
-                hidden_layer_sizes=self.hl_sizes,
+                hidden_layer_sizes=self.hidden_layer_sizes,
                 activation=self.activation,
                 solver=self.solver,
                 alpha=self.alpha,
@@ -91,7 +96,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 n_iter_no_change = self.n_iter_no_change,
                 random_state=self.seed,
                 early_stopping=self.early_stopping,
-                verbose=2
+                verbose= self.verbose
             ))
         ])
         
@@ -197,13 +202,57 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
             #     mlp_model.save_statistics("mlp_test_4")
             #     print(f"ending {i}th iteration")
 
-        return pd.DataFrame(results).set_index(param_name)    
+        return pd.DataFrame(results).set_index(param_name)
+    def plot_parameter_sweep(self,results_df, param_name='hidden_layer_sizes'):
+        """
+        Plot MSE, RMSE, MAE, and R² against different hidden layer configurations.
+
+        Parameters:
+        - results_df: pd.DataFrame from sweep_single_parameter
+        - param_name: str, name of the varied parameter (should be index of DataFrame)
+        """
+        if not isinstance(results_df.index[0], str):
+            results_df.index = results_df.index.map(str)  # Convert tuples to strings
+
+        metrics = ['mse', 'rmse', 'mae', 'r2']
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+        axes = axes.flatten()
+        x_labels = results_df['hidden_layer_sizes'].tolist()  # Actual param values like tuples
+        print(x_labels)
+        for i, metric in enumerate(metrics):
+            ax = axes[i]
+            results_df[metric].plot(kind='bar', ax=ax)
+            ax.set_title(metric.upper())
+            ax.set_xlabel(param_name)
+            ax.set_ylabel(metric)
+            ax.set_xticks(range(len(results_df.index)))
+            ax.set_xticklabels([str(label) for label in x_labels], rotation=45, ha='right')
+            y_min = results_df[metric].min()
+            y_max = results_df[metric].max()
+            margin = 0.05 * (y_max - y_min)  # 5% margin
+
+            ax.set_ylim(y_min - margin, y_max + margin)
+
+        plt.tight_layout()
+        plt.suptitle(f"Performance Metrics vs. {param_name}", fontsize=16, y=1.03)
+        plt.savefig(f"results/graph/{param_name}_metrics.png")
+        plt.show()
 
 
 def main():
     # net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
     # optimise_mlp(property_data,net_sizes,seed)
     hidden_layer_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
+    hidden_layer_sizes_2 = [(256,256,128),(256,256,256),(512,256,128),(512,256,256)]
+    hidden_layer_sizes_3 = [(1024,256,128),(1024,256,256),(1024,512,256),(1024,512,512)]
+    hidden_layer_sizes_4 = [(256,128,64,32),(256,256,128,64),(512,256,256,128),(1024,512,256,128)]
+
+    hidden_layer_sizes_5 = [(128,64,32,16,8),(256,128,64,32,16),(256,128,64,64,32),(256,128,128,64,64)]
+    hidden_layer_sizes_6 = [(512,256,128,64,64)]
+    hidden_layer_sizes_7 = [(1024,512,265,128,64)]
+    hidden_layer_sizes_8 = [(1024,512,512,256,128)]
+
+
     solvers = ['relu', 'tanh', 'logistic', 'identity']
     alpha = np.logspace(-6, 0, num=7)
     batch_size = (32, 64, 128, 256)
@@ -221,10 +270,10 @@ def main():
         'batch_size': batch_size,
         'beta_1': beta_1,
         'beta_2':beta_2,
-        'n_iter_no_change': n_iter_no_change,
-        'tol':tol,
-        'max_iter': max_iterations,
-        'verbose': [2] 
+        'n_iter_no_change': [10],
+        'tol':[1e-4],
+        'max_iter': [10000],
+        'verbose': [False] 
     }
     param_grid_SGD = {
         'activation': solvers,
@@ -242,6 +291,34 @@ def main():
     # model.classify_model_performance()
     # print(model.get_params())
    
+    adam_fixed_params = {
+        'hidden_layer_sizes': (128,64,32),
+        'activation': 'relu',
+        'learning_rate_init': 0.001,
+        'alpha': 0.0001,
+        'batch_size': 'auto',
+        'beta_1': 0.9,
+        'beta_2':0.999,
+        'n_iter_no_change': 20,
+        'tol': 1e-5,
+        'max_iter': 10000,
+        'verbose': False
+    }
+    mlp_model = MlpModel(property_data, seed=42)
+    test_vals = hidden_layer_sizes_8
+    results_df = mlp_model.sweep_single_parameter(
+        param_name="hidden_layer_sizes",
+        param_values=test_vals,
+        fixed_params=adam_fixed_params
+    )
+    print(results_df)
+    name = 'sequential_Hl_sizes_2'
+    results_df.to_csv(f"results/txt/{name}.csv", mode = 'a', header=not os.path.exists(f"results/txt/{name}.csv"), index=test_vals)
+
+
+    df = pd.read_csv(f"results/txt/{name}.csv")
+
+    mlp_model.plot_parameter_sweep(df, 'hidden_layer_sizes')
 
 if __name__ == "__main__":
     main()
