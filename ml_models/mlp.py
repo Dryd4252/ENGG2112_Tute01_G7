@@ -27,7 +27,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                  tol = 1e-4,
                  momentum = 0.9, 
                  nesterovs_momentum = True,
-                 early_stopping=False, 
+                 early_stopping=True, 
                  validation_fraction = 0.1,
                  beta_1 = 0.9,
                  beta_2 = 0.999,
@@ -91,7 +91,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 n_iter_no_change = self.n_iter_no_change,
                 random_state=self.seed,
                 early_stopping=self.early_stopping,
-                verbose=False
+                verbose=2
             ))
         ])
         
@@ -102,96 +102,108 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
 
     def initalise_model(self) -> BaseEstimator:
         return MLPRegressor(random_state=self.seed)
-
-
-def normalise(value, mean, std):
-    z = (value - mean) / std
-    # Rescale z-scores to 0–1 using sigmoid-like transformation
-    return 1 / (1 + np.exp(-z))  # squashes into (0, 1) smoothly
-
-def weighted_score(row, df):
-    scaled_mse  = 1 - normalise(row["mse"],  df["mse"].mean(),  df["mse"].std())
-    scaled_rmse = 1 - normalise(row["rmse"], df["rmse"].mean(), df["rmse"].std())
-    scaled_mae  = 1 - normalise(row["mae"],  df["mae"].mean(),  df["mae"].std())
-    scaled_r2   = normalise(row["r2"],       df["r2"].mean(),   df["r2"].std())
-
-    return 0.25 * scaled_mse + 0.25 * scaled_rmse + 0.25 * scaled_mae + 0.25 * scaled_r2
-
-# ## Function to optimise mlp based on certain parameteres
-# def optimise_mlp(data,net_sizes,seed):
-#     size_scores = []
-#     i = 0
-#     alpha = 0.0001
-#     models = {}
-#     ## Run Size Study, vary between a few 
-#     for net_size in net_sizes:
-#         i += 1
-#         print(f"running test #{i} for size parameter tuple {net_size}")
-#         mlp_model = mlp(data, net_size,alpha = alpha, seed=seed)
-#         mlp_model.process_data()
-#         mlp_model.train_model()
-#         mlp_model.test_prediction()
-#         mlp_model.classify_model_performance()
-#         size_scores.append(mlp_model.get_statistics())
-#         models[f"model_{net_size}"] = mlp_model
-#         print("done")
     
-#     size_df = pd.DataFrame(size_scores, columns= ["mse", "rmse", "mae","r2"], index = net_sizes)
-#     size_df["weighted_score"] = size_df.apply(weighted_score, axis=1,args=(size_df,))
-#     size_df.to_csv("results/test.csv")
-#     print(size_df)
-#     print(models)
-#     models[f"model_{(128, 64, 32)}"].create_graph()
-def mlp_optimiser(property_data: pd.DataFrame,param_grid, seed: int):
+    @abstract_ml_model.track_time
+    def run_optimisation(self, param_grid, n_iter=20, target_label=["critical_temp"]):
+        self.process_data(target_label)
+        self.optimise_model(param_grid, n_iter=n_iter, verbose=1)
+        self.test_prediction()
+        self.classify_model_performance()
 
+        results = self.get_cv_results()
 
-    mlp_model_t = MlpModel(property_data, seed=seed)
-    mlp_model_t.process_data(["critical_temp"])
-    mlp_model_t.optimise_model(param_grid,verbose=1)
-    mlp_model_t.test_prediction()
-    mlp_model_t.classify_model_performance()
+        # Train performance
+        mse_train, rmse_train, mae_train, r2_train = self.evaluate_train_performance()
 
-    results = mlp_model_t.get_cv_results()
+        # Extract cross-validation scores
+        mean_val_scores = np.mean(results['mean_test_score'])
+        mean_train_scores = results.get('mean_train_score')
+        if mean_train_scores is not None:
+            mean_train_scores = np.mean(mean_train_scores)
 
-    # Train performance
-    mse_train, rmse_train, mae_train, r2_train = mlp_model_t.evaluate_train_performance()
+        # Test performance
+        mse_test, rmse_test, mae_test, r2_test = self.get_statistics()
 
-    # Extract cross-validation scores
-    mean_val_scores = np.mean(results['mean_test_score'])
-    mean_train_scores = results.get('mean_train_score')
-    if mean_train_scores is not None:
-        mean_train_scores = np.mean(mean_train_scores)
+        print("\n===== Cross-validation scores =====")
+        print(f"Mean test scores: {mean_val_scores}")
+        if mean_train_scores is not None:
+            print(f"Mean train scores: {mean_train_scores}")
 
-    # Test performance
-    mlp_model_t.classify_model_performance()
-    mse_test, rmse_test, mae_test, r2_test = mlp_model_t.get_statistics()
+        print("\n===== Final Train Set Statistics =====")
+        print(f"MSE:  {mse_train:.4f}")
+        print(f"RMSE: {rmse_train:.4f}")
+        print(f"MAE:  {mae_train:.4f}")
+        print(f"R²:   {r2_train:.4f}")
 
-    print("\n===== Cross-validation scores =====")
-    print(f"Mean test scores: {mean_val_scores}")
-    if mean_train_scores is not None:
-        print(f"Mean train scores: {mean_train_scores}")
+        print("\n===== Final Test Set Statistics =====")
+        print(f"MSE:  {mse_test:.4f}")
+        print(f"RMSE: {rmse_test:.4f}")
+        print(f"MAE:  {mae_test:.4f}")
+        print(f"R²:   {r2_test:.4f}")
 
-    print("\n===== Final Train Set Statistics =====")
-    print(f"MSE:  {mse_train:.4f}")
-    print(f"RMSE: {rmse_train:.4f}")
-    print(f"MAE:  {mae_train:.4f}")
-    print(f"R²:   {r2_train:.4f}")
+        print("\n===== Best Parameters =====")
+        print(self.get_params())
+    @abstract_ml_model.track_time
+    def sweep_single_parameter(self, 
+                           param_name: str, 
+                           param_values: list, 
+                           fixed_params: dict, 
+                           target_label: list[str] = ["critical_temp"]) -> pd.DataFrame:
+        """
+        Sweep over a single hyperparameter while keeping others fixed.
 
-    print("\n===== Final Test Set Statistics =====")
-    print(f"MSE:  {mse_test:.4f}")
-    print(f"RMSE: {rmse_test:.4f}")
-    print(f"MAE:  {mae_test:.4f}")
-    print(f"R²:   {r2_test:.4f}")
+        Parameters:
+        - param_name: str, the name of the parameter to vary
+        - param_values: list, values for the parameter
+        - fixed_params: dict, base/fixed hyperparameters
+        - target_label: list of target labels to predict
 
-    print("\n===== Best Parameters =====")
-    print(mlp_model_t.get_params())
-    return mlp_model_t
+        Returns:
+        - pd.DataFrame with metrics for each value of the varied parameter
+        """
+        self.process_data(target_label)
+        results = []
+
+        for i, value in enumerate(param_values, start=1):
+            print(f"Iteration {i}/{len(param_values)} — testing {param_name} = {value}")
+            # Set parameters
+            param_set = fixed_params.copy()
+            param_set[param_name] = value
+
+            # Update self's hyperparameters dynamically
+            for k, v in param_set.items():
+                setattr(self, k, v)
+
+            # Train the model
+            self.train_model()
+            self.test_prediction()
+            self.classify_model_performance()
+
+            # Test performance
+            mse, rmse, mae, r2 = self.get_statistics()
+
+            results.append({
+                param_name: value,
+                "mse": mse,
+                "rmse": rmse,
+                "mae": mae,
+                "r2": r2
+            })
+            # property_data = pd.read_csv("../train.csv")
+            # for i in range(1, 10):
+            #     print(f"starting {i}th iteration")
+            #     mlp_model = MlpModel(property_data, seed=None)
+            #     mlp_model.run_optimisation(param_grid=param_grid_adam, n_iter=5)
+            #     mlp_model.save_statistics("mlp_test_4")
+            #     print(f"ending {i}th iteration")
+
+        return pd.DataFrame(results).set_index(param_name)    
 
 
 def main():
     # net_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
     # optimise_mlp(property_data,net_sizes,seed)
-
+    hidden_layer_sizes = [(10,),(64,64),(128,64,32),(256,128,64)]
     solvers = ['relu', 'tanh', 'logistic', 'identity']
     alpha = np.logspace(-6, 0, num=7)
     batch_size = (32, 64, 128, 256)
@@ -203,28 +215,33 @@ def main():
     tol = np.logspace(-4,-2,num = 4)
     max_iterations = [10000]
     param_grid_adam = {
-        'hidden_layer_sizes': [(10,),(64,64),(128,64,32),(256,128,64)],
+        'hidden_layer_sizes': hidden_layer_sizes,
         'activation': solvers,
         'alpha': alpha,
         'batch_size': batch_size,
-        'learning_rate': learning_rate,
-        'learning_rate_init': learning_rate_init,
         'beta_1': beta_1,
         'beta_2':beta_2,
         'n_iter_no_change': n_iter_no_change,
         'tol':tol,
-        'max_iter': max_iterations  
+        'max_iter': max_iterations,
+        'verbose': [2] 
     }
     param_grid_SGD = {
         'activation': solvers,
-        'alpha': alpha
+        'alpha': alpha,
+        'learning_rate': learning_rate,
+        'learning_rate_init': learning_rate_init,
 
     }
-
     property_data = pd.read_csv("../train.csv")
-    
-    mlp_optimiser(property_data,param_grid=param_grid_adam, seed = None)
-    return
+
+    # model = MlpModel(property_data,seed=None)
+    # model.process_data(target_label=["critical_temp"])
+    # model.train_model()
+    # model.test_prediction()
+    # model.classify_model_performance()
+    # print(model.get_params())
+   
 
 if __name__ == "__main__":
     main()

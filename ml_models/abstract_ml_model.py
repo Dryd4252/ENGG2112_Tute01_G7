@@ -89,7 +89,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.DATA_PROCESSED)
     @transition_state(ModelState.MODEL_TRAINED)
-    def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
+    def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=1) -> None:
 
         # Set up RandomSearchCV
         self.random_search = RandomizedSearchCV(
@@ -100,7 +100,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
             scoring=scoring,
             n_jobs=-1,
             random_state=self.seed,
-            verbose=verbose,
+            verbose=2,
             return_train_score=True
         )
 
@@ -159,7 +159,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
             "train_mae": [self.mae_train],
             "train_r2": [self.r2_train],
         })
-
+        print("making csv")
         results_df.to_csv(f"results/txt/{name}.csv", mode = 'a', header=not os.path.exists(f"results/txt/{name}.csv"), index=False)
 
         params = self.model.get_params()
