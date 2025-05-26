@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import sys
 from scipy.stats import randint, uniform
+from scipy.optimize import differential_evolution
 from sklearn.inspection import permutation_importance
 from packaging.version import parse as parse_version
 
@@ -94,8 +95,6 @@ def main(save_files):
     # Data processing
     property_data = pd.read_csv("train.csv")
 
-    # Sub-Problem A
-
     # print("Calling xgb_optimiser() for the first time to train model")
     # xgb_model_t = xgb_optimiser(property_data, seed)
     # plot_property_importance(xgb_model_t, property_data
@@ -109,26 +108,28 @@ def main(save_files):
 
     # rfr_test_optomiser(property_data, seed)
 
-    # mlp_model_1 = mlp(property_data, 50, seed=seed)
-    # rfr_model_1 = rfr(property_data, seed=seed)
-    # xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
+    # Model training
+    mlp_model_A = mlp(property_data, 50, seed=seed)
+    # rfr_model_A = rfr(property_data, seed=seed)
+    # xgb_model_A = xgb(property_data, 100, 0.1, 5, seed=seed)
 
-    # ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
+    ml_models_A = [mlp_model_A]
 
-    # for model in ml_models_1:
-    #     model.process_data(["critical_temp"])
-    #     model.train_model()
-    #     model.test_prediction()
-    #     model.classify_model_performance()
-    #     print(model.get_statistics())
-    #     model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
+    for model in ml_models_A:
+        model.process_data(["critical_temp"])
+        model.train_model()
+        # model.test_prediction()
+        # model.classify_model_performance()
+        # print(model.get_statistics())
+        # model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
 
-    #     if save_files: # Savees stats if save_files is True
-    #         model.save_statistics(model.name) 
+        # if save_files: # Savees stats if save_files is True
+        #     model.save_statistics(model.name) 
 
     ### Sub Problem B
 
     # Data processing
+
     symbol_data = pd.read_csv("unique_m.csv")
     symbol_drop_columns = ["critical_temp", "material"]
     symbol_data = symbol_data.drop(columns=symbol_drop_columns)
@@ -139,13 +140,13 @@ def main(save_files):
 
     # Model training
 
-    # mlp_model_2 = mlp(property_symbol_data, 50, seed=seed)
-    # rfr_model_2 = rfr(property_symbol_data, seed=seed)
-    # xgb_model_2 = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
-
-    # ml_models_2 = [mlp_model_2, rfr_model_2, xgb_model_2]
+    # mlp_model_B = mlp(property_symbol_data, 50, seed=seed)
+    # rfr_model_B = rfr(property_symbol_data, seed=seed, min_samples_leaf=84)
+    # xgb_model_B = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
     # 
-    # for model in ml_models_2:
+    # ml_models_B = [mlp_model_B, rfr_model_B, xgb_model_B]
+
+    # for model in ml_models_B:
     #     model.process_data(subproblem_b_targets)
     #     model.train_model()
     #     model.test_prediction()
@@ -156,10 +157,47 @@ def main(save_files):
     #         model.save_statistics(model.name) 
 
     ### Sub Problem C
+    
+    # Obtain property labels and ranges
+    global property_labels
+    property_labels = []
+    property_range_list = []
 
-    for label, data in property_data.items():
-        print(f"{label} - min: {data.min()} max: {data.max()}")
-        print(f"")
+    for label, data in property_data.drop(columns="critical_temp").items():
+        property_range_list.append((data.min(), data.max()))
+        property_labels.append(label)
+
+    # Find maximum temperature predicted of each model
+    model_combination_max_Tc = {}
+    for model in ml_models_A:
+        model_name = model.__class__.__name__
+
+        global global_model
+        global_model = model
+
+        result = differential_evolution(
+            global_model_make_prediction, 
+            property_range_list,
+            workers=-1,
+            disp=True)
+        
+        if result.success == False:
+            print("{model_name}: failed optomise")
+
+        optimal_properties = result.x
+        max_predicted_temperature = -result.fun
+        model_combination_max_Tc[model_name] = (optimal_properties, max_predicted_temperature)
+
+    for model, properties_temperature in model_combination_max_Tc.items():
+        model_name = model.__class__.__name__
+        print(f"For {model_name}: ") 
+        print(f"Optimal properties: {properties_temperature[0]}")
+        print(f"Predicted critical temperature: {properties_temperature[1]}")
+
+# Global function definition for model make_prediction
+# For compatability with differential_evolution and allow for multi threading
+def global_model_make_prediction(x):
+    return -global_model.make_prediction(pd.DataFrame([x], columns=property_labels))[0]
 
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True
