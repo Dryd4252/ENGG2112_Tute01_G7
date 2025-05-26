@@ -26,7 +26,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                  batch_size="auto",
                  learning_rate = "constant",
                  learning_rate_init=0.001,
-                 max_iterations=10000, 
+                 max_iter=10000, 
                  tol = 1e-4,
                  momentum = 0.9, 
                  nesterovs_momentum = True,
@@ -37,6 +37,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                  epsilon = 1e-8,
                  n_iter_no_change = 10,
                  seed=None,
+                 power_t = 0.5,
                  verbose = 1
                  ):
         super().__init__(data, self.__class__.__name__, seed=seed)
@@ -47,7 +48,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.learning_rate_init = learning_rate_init
-        self.max_iterations: int =  max_iterations
+        self.max_iter: int =  max_iter
         self.tol = tol
         self.momentum = momentum
         self.nesterovs_momentum = nesterovs_momentum
@@ -58,12 +59,14 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         self.n_iter_no_change = n_iter_no_change
         self.early_stopping = early_stopping
         self.verbose = verbose
+        self.power_t = power_t
     def process_data(self, target_label: list[str], split_size: float = 0.2,  exclude_features: list[str] = []) -> None:
         X = self.data.drop(columns=[*target_label, *exclude_features])
         y = self.data[target_label]
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
-
+    
+    @abstract_ml_model.track_time
     def train_model(self) -> None:
         numerical_features = self.X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
         categorical_features = self.X_train.select_dtypes(include=['object']).columns.tolist() 
@@ -85,7 +88,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 batch_size = self.batch_size,
                 learning_rate = self.learning_rate, 
                 learning_rate_init=self.learning_rate_init,
-                max_iter=self.max_iterations, 
+                max_iter=self.max_iter, 
                 tol = self.tol,
                 momentum = self.momentum,
                 nesterovs_momentum = self.nesterovs_momentum,
@@ -96,6 +99,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 n_iter_no_change = self.n_iter_no_change,
                 random_state=self.seed,
                 early_stopping=self.early_stopping,
+                power_t = self.power_t,
                 verbose= self.verbose
             ))
         ])
@@ -203,7 +207,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
             #     print(f"ending {i}th iteration")
 
         return pd.DataFrame(results).set_index(param_name)
-    def plot_parameter_sweep(self,results_df, param_name='hidden_layer_sizes'):
+    def plot_parameter_sweep(self,results_df, param_name='hidden_layer_sizes',file_name = "test"):
         """
         Plot MSE, RMSE, MAE, and R² against different hidden layer configurations.
 
@@ -217,7 +221,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         metrics = ['mse', 'rmse', 'mae', 'r2']
         fig, axes = plt.subplots(2, 2, figsize=(12, 8))
         axes = axes.flatten()
-        x_labels = results_df['hidden_layer_sizes'].tolist()  # Actual param values like tuples
+        x_labels = results_df[param_name].tolist()  # Actual param values like tuples
         print(x_labels)
         for i, metric in enumerate(metrics):
             ax = axes[i]
@@ -235,7 +239,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
 
         plt.tight_layout()
         plt.suptitle(f"Performance Metrics vs. {param_name}", fontsize=16, y=1.03)
-        plt.savefig(f"results/graph/{param_name}_metrics.png")
+        plt.savefig(f"results/graph/{file_name}_metrics.png")
         plt.show()
 
 
@@ -253,11 +257,11 @@ def main():
     hidden_layer_sizes_8 = [(1024,512,512,256,128)]
 
 
-    solvers = ['relu', 'tanh', 'logistic', 'identity']
-    alpha = np.logspace(-6, 0, num=7)
-    batch_size = (32, 64, 128, 256)
+    solvers = ['relu', 'tanh']
+    alpha = np.logspace(-6, -1, num=6)
+    batch_size = [32, 64, 128, 256, 512, 1024]
     learning_rate = ['constant', 'invscaling', 'adaptive']
-    learning_rate_init = np.logspace(-4,-2,num = 4)
+    learning_rate_init = np.logspace(-4,-1.5,num = 10)
     beta_1 = np.arange(0.5,1.0,0.1)
     beta_2 = np.linspace(0.9,0.99999,5)
     n_iter_no_change = np.arange(5,20,1)
@@ -292,34 +296,60 @@ def main():
     # print(model.get_params())
    
     adam_fixed_params = {
-        'hidden_layer_sizes': (128,64,32),
+        'hidden_layer_sizes': (1024, 512, 256, 128),#(512,256,256),
         'activation': 'relu',
-        'learning_rate_init': 0.001,
-        'alpha': 0.0001,
+        'learning_rate_init': 0.002,
+        'alpha': 0.01,
         'batch_size': 'auto',
         'beta_1': 0.9,
         'beta_2':0.999,
-        'n_iter_no_change': 20,
+        'n_iter_no_change': 15,
         'tol': 1e-5,
         'max_iter': 10000,
-        'verbose': False
+        'verbose': 0
     }
-    mlp_model = MlpModel(property_data, seed=42)
-    test_vals = hidden_layer_sizes_8
-    results_df = mlp_model.sweep_single_parameter(
-        param_name="hidden_layer_sizes",
-        param_values=test_vals,
-        fixed_params=adam_fixed_params
-    )
-    print(results_df)
-    name = 'sequential_Hl_sizes_2'
-    results_df.to_csv(f"results/txt/{name}.csv", mode = 'a', header=not os.path.exists(f"results/txt/{name}.csv"), index=test_vals)
+
+    
+    def test_params(param_name,test_vals,file_name):
+        mlp_model = MlpModel(property_data, seed=42)
+        # test_vals = hidden_layer_sizes_8
+        results_df = mlp_model.sweep_single_parameter(
+            param_name,
+            param_values=test_vals,
+            fixed_params=adam_fixed_params
+        )
+        print(results_df)
+        name = file_name
+        results_df.to_csv(f"results/txt/{name}.csv", mode = 'a', header=not os.path.exists(f"results/txt/{name}.csv"), index=True)
 
 
-    df = pd.read_csv(f"results/txt/{name}.csv")
+        df = pd.read_csv(f"results/txt/{name}.csv")
 
-    mlp_model.plot_parameter_sweep(df, 'hidden_layer_sizes')
+        mlp_model.plot_parameter_sweep(df, param_name,file_name)
+    param_name="batch_size"
+    test_vals = batch_size
+    file_name = 'sequential_batch_size_(1024, 512, 256, 128)'
+    test_params(param_name,test_vals,file_name)
+    # name = file_name
+    # df = pd.read_csv(f"results/txt/{name}.csv")
+    # mlp_model = MlpModel(property_data, seed=42)
 
+    # mlp_model.plot_parameter_sweep(df, param_name,file_name)
+   
+    
 if __name__ == "__main__":
     main()
 
+ # mlp_model = MlpModel(property_data,**adam_fixed_params)
+    # mlp_model.process_data(target_label = ["critical_temp"])
+    # mlp_model.train_model()
+    # mlp_model.test_prediction()
+    # mlp_model.classify_model_performance()
+
+    # mse_train, rmse_train, mae_train, r2_train = mlp_model.evaluate_train_performance()
+    # mse_test, rmse_test, mae_test, r2_test = mlp_model.get_statistics()
+
+    # print("train")
+    # print(mse_train, rmse_train, mae_train, r2_train)
+    # print("test")
+    # print(mse_test, rmse_test, mae_test, r2_test)
