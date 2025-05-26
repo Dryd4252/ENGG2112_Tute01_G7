@@ -139,21 +139,27 @@ def main(save_files):
 
     # Model training
 
-    mlp_model_2 = mlp(property_symbol_data, 50, seed=seed)
-    rfr_model_2 = rfr(property_symbol_data, seed=seed)
-    xgb_model_2 = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
+    # mlp_model_2 = mlp(property_symbol_data, 50, seed=seed)
+    # rfr_model_2 = rfr(property_symbol_data, seed=seed)
+    # xgb_model_2 = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
 
-    ml_models_2 = [mlp_model_2, rfr_model_2, xgb_model_2]
-    
-    for model in ml_models_2:
-        model.process_data(subproblem_b_targets)
-        model.train_model()
-        model.test_prediction()
-        model.classify_model_performance()
-        print(model.get_statistics())
-        print(model.y_test)
-        if save_files: # Savees stats if save_files is True
-            model.save_statistics(model.name) 
+    # ml_models_2 = [mlp_model_2, rfr_model_2, xgb_model_2]
+    # 
+    # for model in ml_models_2:
+    #     model.process_data(subproblem_b_targets)
+    #     model.train_model()
+    #     model.test_prediction()
+    #     model.classify_model_performance()
+    #     print(model.get_statistics())
+    #     print(model.y_test)
+    #     if save_files: # Savees stats if save_files is True
+    #         model.save_statistics(model.name) 
+
+    ### Sub Problem C
+
+    for label, data in property_data.items():
+        print(f"{label} - min: {data.min()} max: {data.max()}")
+        print(f"")
 
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True
