@@ -20,7 +20,15 @@ from .abstract_ml_model import AbstractMlModel, track_time
 class RfrModel(AbstractMlModel):
 
     # Constructor
-    def __init__(self, data: pd.DataFrame, n_estimators=141, max_depth=30, min_samples_split=3, min_samples_leaf=1, max_features='sqrt', n_jobs=-1, seed=None) -> None:
+    def __init__(self, 
+            data: pd.DataFrame, 
+            n_estimators=141, 
+            max_depth=30, 
+            min_samples_split=3, 
+            min_samples_leaf=1, 
+            max_features='sqrt', 
+            n_jobs=-1, 
+            seed=None) -> None:
         super().__init__(data, self.__class__.__name__, seed=seed)
         self.n_estimators=n_estimators
         self.max_depth=max_depth

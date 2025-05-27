@@ -94,8 +94,6 @@ def main(save_files):
     # Data processing
     property_data = pd.read_csv("train.csv")
 
-    # Sub-Problem A
-
     # print("Calling xgb_optimiser() for the first time to train model")
     # xgb_model_t = xgb_optimiser(property_data, seed)
     # plot_property_importance(xgb_model_t, property_data
@@ -135,28 +133,36 @@ def main(save_files):
 
     subproblem_b_targets = symbol_data.columns
 
-    property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+    property_symbol_data = pd.concat([property_data, symbol_data], axis=1).drop(columns="critical_temp")
 
     # Model training
 
-    # mlp_model_2 = mlp(property_symbol_data, 50, seed=seed)
-    rfr_model_2 = rfr(property_symbol_data, seed=seed, min_samples_leaf=84)
-    
-    # xgb_model_2 = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
+    mlp_model_2 = mlp(property_symbol_data, 50, seed=seed)
+    rfr_model_2 = rfr(property_symbol_data, 
+        seed=seed, 
+        max_depth=40, 
+        max_features="log2", 
+        min_samples_leaf=1,
+        min_samples_split=2,
+        n_estimators=212)
+    xgb_model_2 = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
 
-    ml_models_2 = [rfr_model_2]
+    ml_models_2 = [mlp_model_2, rfr_model_2, xgb_model_2]
     
     for model in ml_models_2:
         model.process_data(subproblem_b_targets)
         model.train_model()
         model.test_prediction()
         model.classify_model_performance()
-        print(model.get_statistics())
-        print(model.y_test)
+        print(f"{model.__class__.__name__}: " + model.get_statistics())
         if save_files: # Savees stats if save_files is True
             model.save_statistics(model.name) 
     
-    # rfr_test_optomiser(property_symbol_data, subproblem_b_targets.tolist(), seed)
+    # sample_material_property = [5,92.729214,58.5184161428571,73.1327872225065,36.3966020291995,1.44930919335685,1.05775512271911,122.90607,36.161939,47.0946331703134,53.9798696513451,766.44,1010.61285714286,720.605510513725,938.745412527433,1.54414454326973,0.807078214938731,810.6,743.164285714286,290.183029138508,354.963511171592,161.2,104.971428571429,141.465214777999,84.3701669575628,1.50832754035259,1.2041147982326,205,50.5714285714286,67.321319060161,68.0088169554027,5821.4858,3021.01657142857,1237.09508033858,54.0957182556368,1.31444218462105,0.914802177066343,10488.571,1667.38342857143,3767.40317577062,3632.64918471043,90.89,112.316428571429,69.8333146094209,101.166397739874,1.42799655342352,0.83866646563365,127.05,81.2078571428572,49.4381674417651,41.6676207979191,7.7844,3.79685714285714,4.40379049753476,1.03525111582814,1.37497728009085,1.07309384625263,12.878,1.59571428571429,4.47336265464807,4.60300005985449,172.205316,61.3723314285714,16.0642278788044,0.619734632330547,0.847404163195705,0.567706107876637,429.97342,51.4133828571429,198.554600255545,139.630922368904,2,2.25714285714286,1.8881750225898,2.21067940870655,1.55711309805765,1.04722136819323,2,1.12857142857143,0.632455532033676,0.468606270481621]
+    
+    for model in ml_models_2:
+        expected_composite = model.make_prediction(pd.DataFrame([x], columns=property_data.drop(columns="critical_temp").columns))
+        print(expected_composite)
 
 
 if __name__ == "__main__":

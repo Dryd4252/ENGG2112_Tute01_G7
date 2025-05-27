@@ -143,7 +143,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.CLASSIFIED_PERFORMANCE)
     def get_statistics(self) -> None:
-        return self.mse, self.rmse, self.mae, self.r2
+        return f"mse: {self.mse}, rmse: {self.rmse}, mae: {self.mae}, r2: {self.r2}"
 
     @require_state(ModelState.CLASSIFIED_PERFORMANCE)
     def save_statistics(self, name: str) -> None:
