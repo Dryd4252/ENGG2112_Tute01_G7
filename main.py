@@ -25,7 +25,7 @@ def rfr_test_optomiser(property_data: pd.DataFrame, target_labels: list[str], se
 
     rfr_model_t = rfr(property_data, seed=seed)
     rfr_model_t.process_data(target_labels)
-    rfr_model_t.optimise_model(param_grid)
+    rfr_model_t.optimise_model(param_grid, n_iter=5)
     rfr_model_t.test_prediction()
     rfr_model_t.classify_model_performance()
 
@@ -46,7 +46,7 @@ def xgb_optimiser(property_data: pd.DataFrame, seed: int):
 
     xgb_model_t = xgb(property_data, seed=seed)
     xgb_model_t.process_data(["critical_temp"])
-    xgb_model_t.optimise_model(param_grid)
+    xgb_model_t.optimise_model(param_grid, n_iter=10)
     xgb_model_t.test_prediction()
     xgb_model_t.classify_model_performance()
 
@@ -109,52 +109,67 @@ def main(save_files):
 
     # rfr_test_optomiser(property_data, seed)
 
-    # mlp_model_1 = mlp(property_data, 50, seed=seed)
-    # rfr_model_1 = rfr(property_data, seed=seed)
-    # xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
+    mlp_model_1 = mlp(property_data, 50, seed=seed)
+    rfr_model_1 = rfr(property_data, seed=seed)
+    xgb_model_1 = xgb(property_data, 100, 0.1, 5, seed=seed)
 
-    # ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
+    ml_models_1 = [mlp_model_1, rfr_model_1, xgb_model_1]
 
-    # for model in ml_models_1:
-    #     model.process_data(["critical_temp"])
-    #     model.train_model()
-    #     model.test_prediction()
-    #     model.classify_model_performance()
-    #     print(model.get_statistics())
-    #     model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
+    results = []
+    for model in ml_models_1:
+        model.process_data(["critical_temp"])
+        model.train_model()
+        model.test_prediction()
+        model.classify_model_performance()
+        results.append(model.get_statistics())
+        print(model.get_statistics())
+        # model.create_graph(save_fig=save_files) # Saves graph if save_fig is True
 
     #     if save_files: # Savees stats if save_files is True
     #         model.save_statistics(model.name) 
+    
+    # Create plot with subplots comparing the model results
+    fig, axs = plt.subplots(2, 2, figsize=(20, 5))
+    fig.suptitle('Model Performance Comparison')
+    metrics = ['mse', 'rmse', 'mae', 'r2']
+    axs = axs.flatten()
+    for i, metric in enumerate(metrics):
+        axs[i].bar([model.name for model in ml_models_1], [result[i] for result in results])
+        axs[i].set_title(metric.upper())
+        axs[i].set_xticklabels([model.name for model in ml_models_1], rotation=45)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust layout to make room for the suptitle
+    plt.show()
+
 
     ### Sub Problem B
 
     # Data processing
-    symbol_data = pd.read_csv("unique_m.csv")
-    symbol_drop_columns = ["critical_temp", "material"]
-    symbol_data = symbol_data.drop(columns=symbol_drop_columns)
+    # symbol_data = pd.read_csv("unique_m.csv")
+    # symbol_drop_columns = ["critical_temp", "material"]
+    # symbol_data = symbol_data.drop(columns=symbol_drop_columns)
 
-    subproblem_b_targets = symbol_data.columns
+    # subproblem_b_targets = symbol_data.columns
 
-    property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+    # property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
 
     # Model training
 
     # mlp_model_2 = mlp(property_symbol_data, 50, seed=seed)
-    rfr_model_2 = rfr(property_symbol_data, seed=seed, min_samples_leaf=84)
+    # rfr_model_2 = rfr(property_symbol_data, seed=seed, min_samples_leaf=84)
     
     # xgb_model_2 = xgb(property_symbol_data, 100, 0.1, 5, seed=seed)
 
-    ml_models_2 = [rfr_model_2]
+    # ml_models_2 = [rfr_model_2]
     
-    for model in ml_models_2:
-        model.process_data(subproblem_b_targets)
-        model.train_model()
-        model.test_prediction()
-        model.classify_model_performance()
-        print(model.get_statistics())
-        print(model.y_test)
-        if save_files: # Savees stats if save_files is True
-            model.save_statistics(model.name) 
+    # for model in ml_models_2:
+    #     model.process_data(subproblem_b_targets)
+    #     model.train_model()
+    #     model.test_prediction()
+    #     model.classify_model_performance()
+    #     print(model.get_statistics())
+    #     print(model.y_test)
+    #     if save_files: # Savees stats if save_files is True
+    #         model.save_statistics(model.name) 
     
     # rfr_test_optomiser(property_symbol_data, subproblem_b_targets.tolist(), seed)
 
