@@ -89,7 +89,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.DATA_PROCESSED)
     @transition_state(ModelState.MODEL_TRAINED)
-    def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="neg_mean_squared_error", verbose=0) -> None:
+    def optimise_model(self, param_grid: dict, n_iter=5, cv=5, scoring="r2", verbose=2) -> None:
 
         # Set up RandomSearchCV
         self.random_search = RandomizedSearchCV(
@@ -143,7 +143,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
 
     @require_state(ModelState.CLASSIFIED_PERFORMANCE)
     def get_statistics(self) -> None:
-        return f"mse: {self.mse}, rmse: {self.rmse}, mae: {self.mae}, r2: {self.r2}"
+        return [self.mse, self.rmse, self.mae, self.r2]
 
     @require_state(ModelState.CLASSIFIED_PERFORMANCE)
     def save_statistics(self, name: str) -> None:
