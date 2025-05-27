@@ -207,7 +207,7 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
             #     print(f"ending {i}th iteration")
 
         return pd.DataFrame(results).set_index(param_name)
-    def plot_parameter_sweep(self,results_df, param_name='hidden_layer_sizes',file_name = "test"):
+    def plot_parameter_sweep(self,results_df, param_name='hidden_layer_sizes',file_name = "test",plot_kind = 'bar'):
         """
         Plot MSE, RMSE, MAE, and R² against different hidden layer configurations.
 
@@ -225,7 +225,10 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         print(x_labels)
         for i, metric in enumerate(metrics):
             ax = axes[i]
-            results_df[metric].plot(kind='bar', ax=ax)
+            if plot_kind == 'line':
+                ax.plot(results_df.index, results_df[metric], marker='o')
+            else:
+                results_df[metric].plot(kind=plot_kind, ax=ax)
             ax.set_title(metric.upper())
             ax.set_xlabel(param_name)
             ax.set_ylabel(metric)
@@ -252,56 +255,31 @@ def main():
     hidden_layer_sizes_4 = [(256,128,64,32),(256,256,128,64),(512,256,256,128),(1024,512,256,128)]
 
     hidden_layer_sizes_5 = [(128,64,32,16,8),(256,128,64,32,16),(256,128,64,64,32),(256,128,128,64,64)]
-    hidden_layer_sizes_6 = [(512,256,128,64,64)]
-    hidden_layer_sizes_7 = [(1024,512,265,128,64)]
-    hidden_layer_sizes_8 = [(1024,512,512,256,128)]
+    hidden_layer_sizes_6 = [(512,256,128,64,64),(1024,512,265,128,64),(1024,512,512,256,128)]
+    hidden_layer_sizes_7 = [(2048,1024,512,512,256)]
+    hidden_layer_sizes_8 = [(256,128,64,32,16,8),(256,128,64,64,32,16),(256,128,128,64,64,32)]
+    hidden_layer_sizes_9 = (512,256,128,64,32,16),(1024,512,256,128,64,32),(1024,512,256,256,128,64)
 
-
-    solvers = ['relu', 'tanh']
-    alpha = np.logspace(-6, -1, num=6)
+    activation = ['relu', 'tanh']
+    alpha = [1e-10,1e-9] # np.logspace(-6, -1, num=6)
     batch_size = [32, 64, 128, 256, 512, 1024]
     learning_rate = ['constant', 'invscaling', 'adaptive']
-    learning_rate_init = np.logspace(-4,-1.5,num = 10)
-    beta_1 = np.arange(0.5,1.0,0.1)
-    beta_2 = np.linspace(0.9,0.99999,5)
-    n_iter_no_change = np.arange(5,20,1)
+    learning_rate_init = [0.0003]#np.logspace(-6,-3,num = 4)
+    beta_1 = [0.5,0.6,0.7]#[0.8, 0.9, 0.95, 0.99]
+    beta_2 = [0.99999]#[0.9, 0.95, 0.99, 0.999]
+    n_iter_no_change = [12,13,14,15] #np.arange(10,20,1)
     tol = np.logspace(-4,-2,num = 4)
     max_iterations = [10000]
-    param_grid_adam = {
-        'hidden_layer_sizes': hidden_layer_sizes,
-        'activation': solvers,
-        'alpha': alpha,
-        'batch_size': batch_size,
-        'beta_1': beta_1,
-        'beta_2':beta_2,
-        'n_iter_no_change': [10],
-        'tol':[1e-4],
-        'max_iter': [10000],
-        'verbose': [False] 
-    }
-    param_grid_SGD = {
-        'activation': solvers,
-        'alpha': alpha,
-        'learning_rate': learning_rate,
-        'learning_rate_init': learning_rate_init,
-
-    }
-    property_data = pd.read_csv("../train.csv")
-
-    # model = MlpModel(property_data,seed=None)
-    # model.process_data(target_label=["critical_temp"])
-    # model.train_model()
-    # model.test_prediction()
-    # model.classify_model_performance()
-    # print(model.get_params())
    
+    
     adam_fixed_params = {
-        'hidden_layer_sizes': (1024, 512, 256, 128),#(512,256,256),
+        'solver': 'adam',
+        'hidden_layer_sizes': (1024, 512, 256, 128),
         'activation': 'relu',
         'learning_rate_init': 0.002,
         'alpha': 0.01,
-        'batch_size': 'auto',
-        'beta_1': 0.9,
+        'batch_size': 128,
+        'beta_1': 0.8,
         'beta_2':0.999,
         'n_iter_no_change': 15,
         'tol': 1e-5,
@@ -309,14 +287,34 @@ def main():
         'verbose': 0
     }
 
-    
+
+    momentum = [0.85,0.95] #[0.5,0.6,0.7,0.8,0.9,0.99]
+
+    sgd_fixed_params = {
+        'solver': 'sgd',
+        'hidden_layer_sizes': (256, 128, 128, 64, 64, 32), #(1024, 512, 256, 128),
+        'activation': 'relu',
+        'learning_rate_init': 0.0001,  # Initial learning rate
+        'learning_rate': 'adaptive',  # Can be 'constant', 'invscaling', or 'adaptive'
+        'momentum': 0.9,              # Momentum for SGD updates
+        'nesterovs_momentum': True,   # Whether to use Nesterov momentum
+        'alpha': 1e-8,                # L2 regularization term
+        'batch_size': 128,
+        'n_iter_no_change': 15,
+        'tol': 1e-5,
+        'max_iter': 10000,
+        'verbose': 0
+    }
+
+    property_data = pd.read_csv("../train.csv")
+
     def test_params(param_name,test_vals,file_name):
         mlp_model = MlpModel(property_data, seed=42)
         # test_vals = hidden_layer_sizes_8
         results_df = mlp_model.sweep_single_parameter(
             param_name,
             param_values=test_vals,
-            fixed_params=adam_fixed_params
+            fixed_params=sgd_fixed_params
         )
         print(results_df)
         name = file_name
@@ -325,31 +323,69 @@ def main():
 
         df = pd.read_csv(f"results/txt/{name}.csv")
 
-        mlp_model.plot_parameter_sweep(df, param_name,file_name)
-    param_name="batch_size"
-    test_vals = batch_size
-    file_name = 'sequential_batch_size_(1024, 512, 256, 128)'
-    test_params(param_name,test_vals,file_name)
-    # name = file_name
-    # df = pd.read_csv(f"results/txt/{name}.csv")
-    # mlp_model = MlpModel(property_data, seed=42)
+        mlp_model.plot_parameter_sweep(df, param_name,file_name, plot_kind='line')
 
-    # mlp_model.plot_parameter_sweep(df, param_name,file_name)
-   
-    
+    param_name="n_iter_no_change"
+    test_vals = n_iter_no_change
+    file_name = f'sgd_{param_name}'
+    test_params(param_name,test_vals,file_name)
+    def just_plot():
+        name = file_name
+        df = pd.read_csv(f"results/txt/{name}.csv")
+        mlp_model = MlpModel(property_data, seed=42)
+
+        mlp_model.plot_parameter_sweep(df, param_name,file_name,plot_kind='line')
+    # just_plot()
+
+    symbol_data = pd.read_csv("../unique_m.csv")
+    symbol_drop_columns = ["critical_temp", "material"]
+    symbol_data = symbol_data.drop(columns=symbol_drop_columns)
+
+    subproblem_b_targets = symbol_data.columns
+
+    property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+    def thing(data,params,targets):    
+        mlp_model = MlpModel(data,**params)
+        mlp_model.process_data(target_label = targets)
+        mlp_model.train_model()
+        mlp_model.test_prediction()
+        mlp_model.classify_model_performance()
+        
+        mse_train, rmse_train, mae_train, r2_train = mlp_model.evaluate_train_performance()
+        mse_test, rmse_test, mae_test, r2_test = mlp_model.get_statistics()
+
+        print("train")
+        print(mse_train, rmse_train, mae_train, r2_train)
+        print("test")
+        print(mse_test, rmse_test, mae_test, r2_test)
+    def testboth():
+        print("ADAM")
+        print("--- SUB PROBLEM A ---")
+        thing(property_data,adam_fixed_params,['critical_temp'])
+        print("-----------------------------------------------")
+        print("--- SUB PROBLEM B ---")
+
+        thing(property_symbol_data,adam_fixed_params,subproblem_b_targets)
+        print("SGD")
+        print("--- SUB PROBLEM A ---")
+        thing(property_data,sgd_fixed_params,['critical_temp'])
+        print("-----------------------------------------------")
+        print("--- SUB PROBLEM B ---")
+
+    thing(property_symbol_data,sgd_fixed_params,subproblem_b_targets)
 if __name__ == "__main__":
     main()
 
- # mlp_model = MlpModel(property_data,**adam_fixed_params)
-    # mlp_model.process_data(target_label = ["critical_temp"])
-    # mlp_model.train_model()
-    # mlp_model.test_prediction()
-    # mlp_model.classify_model_performance()
+#  mlp_model = MlpModel(property_data,**adam_fixed_params)
+#     mlp_model.process_data(target_label = ["critical_temp"])
+#     mlp_model.train_model()
+#     mlp_model.test_prediction()
+#     mlp_model.classify_model_performance()
 
-    # mse_train, rmse_train, mae_train, r2_train = mlp_model.evaluate_train_performance()
-    # mse_test, rmse_test, mae_test, r2_test = mlp_model.get_statistics()
+#     mse_train, rmse_train, mae_train, r2_train = mlp_model.evaluate_train_performance()
+#     mse_test, rmse_test, mae_test, r2_test = mlp_model.get_statistics()
 
-    # print("train")
-    # print(mse_train, rmse_train, mae_train, r2_train)
-    # print("test")
-    # print(mse_test, rmse_test, mae_test, r2_test)
+#     print("train")
+#     print(mse_train, rmse_train, mae_train, r2_train)
+#     print("test")
+#     print(mse_test, rmse_test, mae_test, r2_test)
