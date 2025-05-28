@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 from scipy.stats import randint, uniform
+from scipy.optimize import differential_evolution
 
 from ml_models.mlp import MlpModel as mlp
 from ml_models.rfr import RfrModel as rfr
@@ -99,6 +100,50 @@ def main(save_files):
         axs[i].set_title(metric.upper())
         padding = (max(res) - min(res)) * 0.2
         axs[i].set_ylim([min(res) - padding, max(res) + padding])
+
+
+    ### Sub Problem C
+    
+    # Obtain property labels and ranges
+    global property_labels
+    property_labels = []
+    property_range_list = []
+
+    for label, data in property_data.drop(columns="critical_temp").items():
+        property_range_list.append((data.min(), data.max()))
+        property_labels.append(label)
+
+    # Find maximum temperature predicted of each model
+    model_combination_max_Tc = {}
+    for model in ml_models_1:
+        model_name = model.__class__.__name__
+
+        global global_model
+        global_model = model
+
+        result = differential_evolution(
+            global_model_make_prediction, 
+            property_range_list,
+            workers=-1,
+            disp=True)
+        
+        if result.success == False:
+            print("{model_name}: failed optomise")
+
+        optimal_properties = result.x
+        max_predicted_temperature = -result.fun
+        model_combination_max_Tc[model_name] = (optimal_properties, max_predicted_temperature)
+
+    for model, properties_temperature in model_combination_max_Tc.items():
+        model_name = model.__class__.__name__
+        print(f"For {model_name}: ") 
+        print(f"Optimal properties: {properties_temperature[0]}")
+        print(f"Predicted critical temperature: {properties_temperature[1]}")
+
+# Global function definition for model make_prediction
+# For compatability with differential_evolution and allow for multi threading
+def global_model_make_prediction(x):
+    return -global_model.make_prediction(pd.DataFrame([x], columns=property_labels))[0]
 
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True
