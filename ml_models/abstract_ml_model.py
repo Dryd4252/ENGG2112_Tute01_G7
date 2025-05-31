@@ -104,7 +104,7 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
             return_train_score=True
         )
 
-        # Run ranndom search
+        # Run random search
         if len(self.y_train.columns) == 1:
             self.random_search.fit(self.X_train, self.y_train.values.ravel())
         else:

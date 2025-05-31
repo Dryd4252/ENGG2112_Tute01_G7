@@ -14,34 +14,36 @@ from . import abstract_ml_model
 class MlpModel(abstract_ml_model.AbstractMlModel):
     # im changing hl_sizes to a tuple to more easily change the variation of hidden layers, inputs will be lik (100,) or (128,64,32)
     def __init__(self, 
-                 data: pd.DataFrame, 
-                 hl_sizes: tuple, 
-                 activation = "relu",
-                 solver='adam', 
-                 alpha=0.0001,
-                 batch_size="auto",
-                 learning_rate = "constant",
-                 learning_rate_init=0.001,
-                 max_iterations=10000, 
-                 tol = 1e-4,
-                 momentum = 0.9, 
-                 nesterovs_momentum = True,
-                 early_stopping=False, 
-                 validation_fraction = 0.1,
-                 beta_1 = 0.9,
-                 beta_2 = 0.999,
-                 epsilon = 1e-8,
-                 n_iter_no_change = 10,
-                 seed=None):
+            data: pd.DataFrame, 
+            hidden_layer_sizes = (10,), 
+            activation = "relu",
+            solver='adam', 
+            alpha=0.0001,
+            batch_size="auto",
+            learning_rate = "constant",
+            learning_rate_init=0.001,
+            max_iter=10000, 
+            tol = 1e-4,
+            momentum = 0.9, 
+            nesterovs_momentum = True,
+            early_stopping=True, 
+            validation_fraction = 0.1,
+            beta_1 = 0.9,
+            beta_2 = 0.999,
+            epsilon = 1e-8,
+            n_iter_no_change = 10,
+            seed=None,
+            power_t = 0.5,
+            verbose = 0):
         super().__init__(data, self.__class__.__name__, seed=seed)
-        self.hl_sizes: tuple = hl_sizes 
+        self.hidden_layer_sizes: tuple = hidden_layer_sizes 
         self.activation = activation
         self.solver = solver
         self.alpha = alpha 
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.learning_rate_init = learning_rate_init
-        self.max_iterations: int =  max_iterations
+        self.max_iter: int =  max_iter
         self.tol = tol
         self.momentum = momentum
         self.nesterovs_momentum = nesterovs_momentum
@@ -51,6 +53,8 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         self.epsilon = epsilon
         self.n_iter_no_change = n_iter_no_change
         self.early_stopping = early_stopping
+        self.verbose = verbose
+        self.power_t = power_t
 
     def process_data(self, target_label: list[str], split_size: float = 0.2,  exclude_features: list[str] = []) -> None:
         X = self.data.drop(columns=[*target_label, *exclude_features])
@@ -72,14 +76,14 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
         mlp_model = Pipeline(steps=[
             ('preprocessor',mlp_preprocessor),
             ('mlp', MLPRegressor(
-                hidden_layer_sizes=self.hl_sizes,
+                hidden_layer_sizes=self.hidden_layer_sizes,
                 activation=self.activation,
                 solver=self.solver,
                 alpha=self.alpha,
                 batch_size = self.batch_size,
                 learning_rate = self.learning_rate, 
                 learning_rate_init=self.learning_rate_init,
-                max_iter=self.max_iterations, 
+                max_iter=self.max_iter, 
                 tol = self.tol,
                 momentum = self.momentum,
                 nesterovs_momentum = self.nesterovs_momentum,
@@ -90,10 +94,11 @@ class MlpModel(abstract_ml_model.AbstractMlModel):
                 n_iter_no_change = self.n_iter_no_change,
                 random_state=self.seed,
                 early_stopping=self.early_stopping,
-                verbose=False
+                power_t = self.power_t,
+                verbose= self.verbose
             ))
         ])
-        
+
         if len(self.y_train.columns) == 1:
             self.model = mlp_model.fit(self.X_train, self.y_train.values.ravel())
         else:

@@ -55,12 +55,21 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
             n_estimators: int = None, 
             learning_rate: float = None,
             max_depth: int = None,
-            seed=None
-        ):
+            subsample = None,
+            colsample_bytree = None,
+            lambd = None,
+            alpha = None,
+            booster = None,
+            seed=None):
         super().__init__(data, self.__class__.__name__, seed=seed)
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.max_depth = max_depth
+        self.subsample = subsample
+        self.colsample_bytree = colsample_bytree
+        self.lambd = lambd
+        self.alpha = alpha
+        self.booster = booster
 
     def process_data(self, target_label, test_size=0.2, exclude_features: list[str] = []):
         X = self.data.drop(columns=[*target_label, *exclude_features])
@@ -75,6 +84,11 @@ class XgbModel(abstract_ml_model.AbstractMlModel):
             n_estimators=self.n_estimators,     # number of boosting rounds
             learning_rate=self.learning_rate,    # step size shrinkage
             max_depth=self.max_depth,          # depth of each tree
+            subsample = self.subsample ,
+            colsample_bytree = self.colsample_bytree,
+            reg_lambda = self.lambd,
+            alpha = self.alpha,
+            booster = self.booster,
             random_state=self.seed       # reproducibility
         )
 
