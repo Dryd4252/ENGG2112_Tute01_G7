@@ -123,7 +123,7 @@ def main(save_files):
         booster="gbtree",
         seed=seed)
 
-    ml_models_2 = [xgb_model_2]
+    ml_models_2 = [mlp_model_2, rfr_model_2, xgb_model_2]
 
     results_2 = []
 
