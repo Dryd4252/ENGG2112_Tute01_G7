@@ -258,37 +258,37 @@ def main():
     hidden_layer_sizes_6 = [(512,256,128,64,64),(1024,512,265,128,64),(1024,512,512,256,128)]
     hidden_layer_sizes_7 = [(2048,1024,512,512,256)]
     hidden_layer_sizes_8 = [(256,128,64,32,16,8),(256,128,64,64,32,16),(256,128,128,64,64,32)]
-    hidden_layer_sizes_9 = (512,256,128,64,32,16),(1024,512,256,128,64,32),(1024,512,256,256,128,64)
-
+    hidden_layer_sizes_9 = [(512,256,128,64,32,16),(1024,512,256,128,64,32),(1024,512,256,256,128,64)]
+    full_2 = [(256,256,128),(256,256,256),(512,256,128),(512,256,256),(1024,256,128),(1024,256,256),(1024,512,256),(1024,512,512),(256,128,64,32),(256,256,128,64),(512,256,256,128),(1024,512,256,128),(128,64,32,16,8),(256,128,64,32,16),(256,128,64,64,32),(256,128,128,64,64),(512,256,128,64,64),(1024,512,265,128,64),(1024,512,512,256,128),(2048,1024,512,512,256),(256,128,64,32,16,8),(256,128,64,64,32,16),(256,128,128,64,64,32),(512,256,128,64,32,16),(1024,512,256,128,64,32),(1024,512,256,256,128,64)]
     activation = ['relu', 'tanh']
     alpha = [1e-10,1e-9] # np.logspace(-6, -1, num=6)
     batch_size = [32, 64, 128, 256, 512, 1024]
     learning_rate = ['constant', 'invscaling', 'adaptive']
-    learning_rate_init = [0.0003]#np.logspace(-6,-3,num = 4)
+    learning_rate_init = np.logspace(-6,-2,num = 5)
     beta_1 = [0.5,0.6,0.7]#[0.8, 0.9, 0.95, 0.99]
     beta_2 = [0.99999]#[0.9, 0.95, 0.99, 0.999]
     n_iter_no_change = [12,13,14,15] #np.arange(10,20,1)
     tol = np.logspace(-4,-2,num = 4)
     max_iterations = [10000]
-   
+    momentum = [0.85,0.95] #[0.5,0.6,0.7,0.8,0.9,0.99]
+
     
     adam_fixed_params = {
         'solver': 'adam',
         'hidden_layer_sizes': (1024, 512, 256, 128),
         'activation': 'relu',
-        'learning_rate_init': 0.002,
-        'alpha': 0.01,
-        'batch_size': 128,
-        'beta_1': 0.8,
-        'beta_2':0.999,
-        'n_iter_no_change': 15,
-        'tol': 1e-5,
-        'max_iter': 10000,
+        # 'learning_rate_init': 0.002,
+        # 'alpha': 0.01,
+        # 'batch_size': 128,
+        # 'beta_1': 0.8,
+        # 'beta_2':0.999,
+        # 'n_iter_no_change': 15,
+        # 'tol': 1e-5,
+        # 'max_iter': 10000,
         'verbose': 0
     }
 
 
-    momentum = [0.85,0.95] #[0.5,0.6,0.7,0.8,0.9,0.99]
 
     sgd_fixed_params = {
         'solver': 'sgd',
@@ -308,13 +308,14 @@ def main():
 
     property_data = pd.read_csv("../train.csv")
 
-    def test_params(param_name,test_vals,file_name):
-        mlp_model = MlpModel(property_data, seed=42)
+    def test_params(param_name,test_vals,file_name,targets,data):
+        mlp_model = MlpModel(data, seed=42)
         # test_vals = hidden_layer_sizes_8
         results_df = mlp_model.sweep_single_parameter(
             param_name,
             param_values=test_vals,
-            fixed_params=sgd_fixed_params
+            fixed_params=adam_fixed_params,
+            target_label= targets
         )
         print(results_df)
         name = file_name
@@ -325,14 +326,13 @@ def main():
 
         mlp_model.plot_parameter_sweep(df, param_name,file_name, plot_kind='line')
 
-    param_name="n_iter_no_change"
-    test_vals = n_iter_no_change
-    file_name = f'sgd_{param_name}'
-    test_params(param_name,test_vals,file_name)
+    param_name="hidden_layer_sizes"
+    test_vals = full_2
+    file_name = f'adam_{param_name}'
     def just_plot():
         name = file_name
         df = pd.read_csv(f"results/txt/{name}.csv")
-        mlp_model = MlpModel(property_data, seed=42)
+        mlp_model = MlpModel(property_symbol_data, seed=42)
 
         mlp_model.plot_parameter_sweep(df, param_name,file_name,plot_kind='line')
     # just_plot()
@@ -344,6 +344,15 @@ def main():
     subproblem_b_targets = symbol_data.columns
 
     property_symbol_data = pd.concat([property_data, symbol_data], axis=1)
+
+    test_params(param_name,test_vals,file_name,subproblem_b_targets,property_symbol_data)
+
+
+
+
+
+
+
     def thing(data,params,targets):    
         mlp_model = MlpModel(data,**params)
         mlp_model.process_data(target_label = targets)
@@ -372,20 +381,6 @@ def main():
         print("-----------------------------------------------")
         print("--- SUB PROBLEM B ---")
 
-    thing(property_symbol_data,sgd_fixed_params,subproblem_b_targets)
+    # thing(property_symbol_data,sgd_fixed_params,subproblem_b_targets)
 if __name__ == "__main__":
     main()
-
-#  mlp_model = MlpModel(property_data,**adam_fixed_params)
-#     mlp_model.process_data(target_label = ["critical_temp"])
-#     mlp_model.train_model()
-#     mlp_model.test_prediction()
-#     mlp_model.classify_model_performance()
-
-#     mse_train, rmse_train, mae_train, r2_train = mlp_model.evaluate_train_performance()
-#     mse_test, rmse_test, mae_test, r2_test = mlp_model.get_statistics()
-
-#     print("train")
-#     print(mse_train, rmse_train, mae_train, r2_train)
-#     print("test")
-#     print(mse_test, rmse_test, mae_test, r2_test)
