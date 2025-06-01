@@ -8,6 +8,7 @@ from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import KFold, cross_val_score
+from sklearn.inspection import permutation_importance
 
 from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
@@ -86,6 +87,19 @@ class AbstractMlModel(ABC, metaclass=AbstractMlModelMeta):
     @abstractmethod
     def initalise_model(self) -> BaseEstimator:
         pass
+
+    @require_state(ModelState.MODEL_TRAINED)
+    def find_feature_importance(self, n_permutations=10) -> pd.DataFrame:
+        perm_importance = permutation_importance(self.model, self.X_train, self.y_train, n_repeats=n_permutations, random_state=self.seed)
+        df = pd.DataFrame({
+            "feature": self.X_train.columns,
+            "mean_importance": perm_importance.importances_mean,
+            "std_importance": perm_importance.importances_std
+            }).sort_values(by="mean_importance", ascending=False)
+        self.feature_importance_df = df
+
+    def get_feature_importance(self):
+        return self.feature_importance_df
 
     @require_state(ModelState.DATA_PROCESSED)
     @transition_state(ModelState.MODEL_TRAINED)

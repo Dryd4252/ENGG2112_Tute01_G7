@@ -54,6 +54,7 @@ def main(save_files):
         for i in range(kfold_splits):
             model.process_data(["critical_temp"])
             model.train_model()
+            model.find_feature_importance()
             model.test_prediction()
             model.classify_model_performance()
             mean_stats += np.array(model.get_statistics())
@@ -133,6 +134,7 @@ def main(save_files):
         for i in range(kfold_splits):
             model.process_data(subproblem_b_targets)
             model.train_model()
+            model.find_feature_importance()
             model.test_prediction()
             model.classify_model_performance()
             mean_stats += np.array(model.get_statistics())
@@ -154,54 +156,14 @@ def main(save_files):
     #     axs[i].set_title(metric.upper())
     #     padding = (max(res) - min(res)) * 0.2
     #     axs[i].set_ylim([min(res) - padding, max(res) + padding])
-    
-    ### Sub Problem C
-    
-    # Obtain property labels and ranges
-    global property_labels
-    property_labels = []
-    property_range_list = []
 
-    for label, data in property_data.drop(columns="critical_temp").items():
-        property_range_list.append((data.min(), data.max()))
-        property_labels.append(label)
-
-    # Find maximum temperature predicted of each model
-    model_combination_max_Tc = {}
     for model in ml_models_1:
-        model_name = model.__class__.__name__
-
-        global global_model
-        global_model = model
-
-        result = differential_evolution(
-            global_model_make_prediction, 
-            property_range_list,
-            maxiter=1000,
-            disp=True)
-
-        optimal_properties = result.x
-        max_predicted_temperature = -result.fun
-        model_combination_max_Tc[model_name] = (optimal_properties, max_predicted_temperature)
-        print(optimal_properties)
-
-    for model, properties_temperature in model_combination_max_Tc.items():
-        print(f"For {model}: ") 
-        print(f"Optimal properties: {properties_temperature[0]}")
-        print(f"Predicted critical temperature: {properties_temperature[1]}")
-
-        for model_2 in ml_models_2:
-            properties = properties_temperature[0]
-            formula = model_2.make_prediction(pd.DataFrame([properties], columns=property_labels))
-            print(f"Model: {model_2.__class__.__name__}")
-            print(f"Predicted formula: {formula}")
+        print(model.get_feature_importance())
 
 
+    for model in ml_models_2:
+        print(model.get_feature_importance())
 
-# Global function definition for model make_prediction
-# For compatability with differential_evolution and allow for multi threading
-def global_model_make_prediction(x):
-    return -global_model.make_prediction(pd.DataFrame([x], columns=property_labels))[0]
 
 if __name__ == "__main__":
     save_files = len(sys.argv) > 1 and sys.argv[1] is True
